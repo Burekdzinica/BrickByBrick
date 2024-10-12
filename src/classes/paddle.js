@@ -34,7 +34,7 @@ export class Paddle {
             this.xPos = canvasWidth - paddleWidth - lineWidth;
 
         else if ((mouseX - paddleWidth / 2 - lineWidth) < 0)
-            this.xPos = 0;
+            this.xPos = lineWidth;
 
         else 
             this.xPos = mouseX - paddleWidth / 2;        
