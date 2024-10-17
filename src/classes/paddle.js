@@ -1,17 +1,13 @@
-// TODO: fix x pos cuz xPos = screenWidth / 2 - paddleWidth / 2;
-const paddleXPos = 325; 
-const paddleYPos = 600;
-const paddleWidth = 150;
-const paddleHeight = 25;
-
-const color = "gray";
-const strokeColor = "black";
-const lineWidth = 2;
-
 export class Paddle {
-    constructor() {
-        this.xPos = paddleXPos;
-        this.yPos = paddleYPos;
+    constructor(config) {
+        const { width, height, startPosition, color, strokeColor, lineWidth } = config.paddle;
+
+        this.width = width;
+        this.height = height;
+        this.position = { x: startPosition.x, y: startPosition.y};
+        this.color = color;
+        this.strokeColor = strokeColor;
+        this.lineWidth = lineWidth;
     }
     
     update() {
@@ -19,28 +15,34 @@ export class Paddle {
     }
     
     render(ctx) {
-        ctx.fillStyle = color;
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = lineWidth;
+        ctx.fillStyle = this.color;
+        ctx.strokeStyle = this.strokeColor;
+        ctx.lineWidth = this.lineWidth;
         
         // Draws rect with outline
-        ctx.fillRect(this.xPos, this.yPos, paddleWidth, paddleHeight);
-        ctx.strokeRect(this.xPos, this.yPos, paddleWidth, paddleHeight);
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+        ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
     }
 
     move(mouseX, canvasWidth) {
+        let paddleSize = this.width / 2; // take half of paddleWidth
+
         // Checks bounding box so it doesn't go offscreen
-        if ((mouseX + paddleWidth / 2) > canvasWidth)
-            this.xPos = canvasWidth - paddleWidth - lineWidth;
+        // Right
+        if ((mouseX + paddleSize) + this.lineWidth >= canvasWidth)
+            this.position.x = canvasWidth - this.width - this.lineWidth;
 
-        else if ((mouseX - paddleWidth / 2 - lineWidth) < 0)
-            this.xPos = lineWidth;
+        // Left 
+        else if ((mouseX - paddleSize - this.lineWidth) <= 0)
+            this.position.x = this.lineWidth;
 
+        // Else
         else 
-            this.xPos = mouseX - paddleWidth / 2;        
+            this.position.x = mouseX - paddleSize;        
     }
 
     handleMouse(event) {
+        // Get canvas rect
         const rect = this.canvas.getBoundingClientRect();
 
         // Gets mouse x position

@@ -1,10 +1,24 @@
 import { Game } from './classes/game.js';
 
-const game = new Game;
+let config = null;
 
-function gameLoop() {
-    game.play();
-    requestAnimationFrame(gameLoop); // Improves performance by browser
+async function loadConfig() {
+    if (!config) {
+        const response = await fetch('./config.json');
+        config = await response.json(); 
+    }
+
+    const game = new Game(config);
+
+    requestAnimationFrame(gameLoop.bind(null, game));
 }
 
-gameLoop();
+function gameLoop(game, timestamp) {
+    game.play(timestamp);
+    requestAnimationFrame(gameLoop.bind(null, game)); 
+}
+
+loadConfig();
+
+
+// TODO: fix this mess

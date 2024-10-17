@@ -1,0 +1,30 @@
+{
+    "ball": {
+        "radius": 25,
+        "startPosition": {
+            "x": 100,
+            "y": 100
+        },
+        "velocity": {
+            "x": 10,
+            "y": 0
+        },
+        "mass": 1,
+        "color": "red",
+        "strokeColor": "black",
+        "lineWidth": 2,
+        "startAngle": 0,
+        "endAngle": 7
+    },
+    "paddle": {
+        "width": 150,
+        "height": 25,
+        "startPosition": {
+            "x": 325,
+            "y": 600
+        },
+        "color": "gray",
+        "strokeColor": "black",
+        "lineWidth": 2
+    }
+}
