@@ -38,7 +38,7 @@ export class Paddle {
 
         // Else
         else 
-            this.position.x = mouseX - paddleSize;        
+            this.position.x = mouseX - paddleSize;   
     }
 
     handleMouse(event) {

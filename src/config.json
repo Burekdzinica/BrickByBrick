@@ -2,19 +2,20 @@
     "ball": {
         "radius": 25,
         "startPosition": {
-            "x": 100,
+            "x": 200,
             "y": 100
         },
         "velocity": {
-            "x": 10,
-            "y": 0
+            "x": 0,
+            "y": -10
         },
         "mass": 1,
         "color": "red",
         "strokeColor": "black",
         "lineWidth": 2,
         "startAngle": 0,
-        "endAngle": 7
+        "endAngle": 7,
+        "bounceMultiplier": 10
     },
     "paddle": {
         "width": 150,
@@ -24,6 +25,17 @@
             "y": 600
         },
         "color": "gray",
+        "strokeColor": "black",
+        "lineWidth": 2
+    },
+    "block": {
+        "width": 125,
+        "height": 25,
+        "position": {
+            "x": 400,
+            "y": 200
+        },
+        "color": "green",
         "strokeColor": "black",
         "lineWidth": 2
     }
