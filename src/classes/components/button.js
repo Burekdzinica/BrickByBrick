@@ -1,23 +1,32 @@
 export class Button {
-    constructor(width, height, position = { x: 0, y: 0 }) {
+    // Without canvas it doesnt work , why idk?? fFIX
+    constructor(config, position = { x: 0, y: 0 }, text, canvas) {
+        this.position = position;
+        this.canvas = canvas;
+        this.text = text;
+        this.isHovered = false;
+
+        const { width, height, defaultColor, hoverColor, strokeColor, lineWidth, textColor, font, textAlign, textBaseline } = config.button;
+        
         this.width = width;
         this.height = height;
-        this.position = position;
+        this.color = defaultColor;
+        this.defaultColor = defaultColor;
+        this.hoverColor = hoverColor;
+        this.strokeColor = strokeColor;
+        this.lineWidth = lineWidth;
 
-        this.color = "yellow";
-        this.hoverColor = "orange";
-        this.strokeColor = "black";
-        this.lineWidth = 2;
-
-        this.isHovered = false;
+        this.textColor = textColor;
+        this.font = font;
+        this.textAlign = textAlign;
+        this.textBaseline = textBaseline;
     }
 
     update() {
-        // this.isHovered = this.checkHover(mouseX, mouseY);
 
     }
 
-    checkHover(mouseX, mouseY) {
+    checkPosition(mouseX, mouseY) {
         return (
             mouseX >= this.position.x &&
             mouseX <= this.position.x + this.width &&
@@ -29,32 +38,31 @@ export class Button {
     handleMouseHover(event) {
         const rect = this.canvas.getBoundingClientRect();
         
-        let mouseX = event.clientX - rect.left; // Calculate mouseX
-        let mouseY = event.clientY - rect.top;  // Calculate mouseY
+        let mouseX = event.clientX - rect.left;
+        let mouseY = event.clientY - rect.top;
         
-        this.isHovered = this.checkHover(mouseX, mouseY);
+        this.isHovered = this.checkPosition(mouseX, mouseY);
         
         if (this.isHovered)
             this.color = this.hoverColor;
         else 
-        this.color = this.color;
+            this.color = this.defaultColor;
     }   
 
     render(ctx) {
-        // Change button color based on hover state
         ctx.fillStyle = this.color;
         ctx.strokeStyle = this.strokeColor;
         ctx.lineWidth = this.lineWidth;
-
+        
         // Draw the button rectangle with outline
         ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
         ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
 
-        // Optionally draw text or label on the button
-        ctx.fillStyle = "black"; // Color for the text
-        ctx.font = "16px Arial"; // Set font size and type
-        ctx.textAlign = "center"; // Center the text
-        ctx.textBaseline = "middle"; // Vertically center the text
-        ctx.fillText("Click Me", this.position.x + this.width / 2, this.position.y + this.height / 2);
+        // Draw text
+        ctx.fillStyle = this.textColor; 
+        ctx.font = this.font;
+        ctx.textAlign = this.textAlign;
+        ctx.textBaseline = this.textBaseline; 
+        ctx.fillText(this.text, this.position.x + this.width / 2, this.position.y + this.height / 2);   
     }
 }

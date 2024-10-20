@@ -22,14 +22,27 @@ export class Game {
         this.block = new Block(config);
         this.blocks = [];
 
-        let position = {x:200, y:100};
-        this.button = new Button(200, 50, position);
+        const playButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 - 60 };
+        const editButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 20 };
 
-        // Binds mouseover event to handleMouse
+        this.buttons = [
+            new Button(config, playButtonPosition, "Play", this.canvas),
+            new Button(config, editButtonPosition, "Edit Mode", this.canvas)
+        ];
+
+        // Paddle listener
         this.canvas.addEventListener("mousemove", this.paddle.handleMouse.bind(this));
-        this.canvas.addEventListener("mousemove", this.button.handleMouseHover.bind(this));
 
-        this.currentState = gameState.EDIT_MODE;
+        // Reference to the bound listeners
+        this.handleButtonHoverBound = this.handleButtonHover.bind(this);
+        this.handleButtonClickBound = this.handleButtonClick.bind(this);
+        this.addBlockBound = this.addBlock.bind(this);
+
+        // Button listeners
+        this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.addEventListener("click", this.handleButtonClickBound);
+
+        this.currentState = gameState.MAIN_MENU;
 
         this.lastTime = 0;
     }
@@ -37,8 +50,8 @@ export class Game {
     play(timestamp) {
         switch (this.currentState) {
             case gameState.MAIN_MENU: 
-                // this.button.update();
-                this.button.render(this.ctx);
+                this.buttons.forEach(button => 
+                    button.render(this.ctx));
             
                 break;
             
@@ -56,26 +69,7 @@ export class Game {
                 break;
 
             case gameState.EDIT_MODE:
-                this.canvas.addEventListener('click', (event) => {
-                    const rect = this.canvas.getBoundingClientRect();
-                    const x = event.clientX - rect.left; // Calculate x position relative to canvas
-                    const y = event.clientY - rect.top;  // Calculate y position relative to canvas
-                
-                    // Create a new block at the clicked position
-                    const newBlock = new Block({
-                        block: {
-                            width: 125,
-                            height: 25,
-                            position: { x: x - 62.5, y: y - 12.5 }, // Center the block at the click
-                            color: 'blue',
-                            strokeColor: 'black',
-                            lineWidth: 2
-                        }
-                    });
-                
-                    this.blocks.push(newBlock); // Add the new block to the blocks array
-                });
-    
+                this.canvas.addEventListener('click', this.addBlockBound);
     
                 this.blocks.forEach(block => {
                     block.render(this.ctx);
@@ -114,4 +108,58 @@ export class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    addBlock(event) {
+        if (this.currentState === gameState.EDIT_MODE) { // Check if in EDIT_MODE
+            const rect = this.canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left; 
+            const y = event.clientY - rect.top; 
+    
+            // Create a new block at the clicked position
+            const newBlock = new Block({
+                block: {
+                    width: 125,
+                    height: 25,
+                    position: { x: x - 62.5, y: y - 12.5 }, // Center the block at the click
+                    color: 'green',
+                    strokeColor: 'black',
+                    lineWidth: 2
+                }
+            });
+    
+            this.blocks.push(newBlock); // Add the new block to the blocks array
+        }
+    }
+
+    handleButtonHover(event) {
+        this.buttons.forEach(button => 
+            button.handleMouseHover(event));
+    }
+
+    handleButtonClick(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+
+        this.buttons.forEach(button => {
+            if (button.checkPosition(mouseX, mouseY)) {
+                if (button.text === "Play") {
+                    this.currentState = gameState.PLAYING;
+                    this.removeButtonListeners();
+                    this.clear();
+                } 
+                else if (button.text === "Edit Mode") {
+                    this.currentState = gameState.EDIT_MODE;
+                    this.removeButtonListeners();
+                    this.clear();
+                }
+            }
+        });
+    }
+
+    removeButtonListeners() {
+        this.canvas.removeEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.removeEventListener("click", this.handleButtonClickBound);
+        this.canvas.removeEventListener("click", this.addBlockBound);
+    }
 }

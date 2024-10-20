@@ -38,5 +38,17 @@
         "color": "green",
         "strokeColor": "black",
         "lineWidth": 2
+    },
+    "button": {
+        "width": 200,
+        "height": 50,
+        "defaultColor": "#f8d928",
+        "hoverColor": "#998303",
+        "strokeColor": "black",
+        "lineWidth": 2,
+        "textColor": "black",
+        "font": "16px Arial",
+        "textAlign": "center",
+        "textBaseline": "middle"
     }
 }
