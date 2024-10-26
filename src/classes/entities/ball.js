@@ -1,8 +1,8 @@
-import { RigidBody } from './bodies/rigidBody.js';
+import { RigidBody } from '../bodies/rigidBody.js';
 
 export class Ball extends RigidBody {
     constructor(config) {
-        const { radius, startPosition, velocity, mass, color, strokeColor, lineWidth, startAngle, endAngle, bounceMultiplier } = config.ball;
+        const { radius, startPosition, velocity, mass, color, strokeColor, lineWidth, startAngle, endAngle, bounceMultiplier } = config;
 
         super(mass, velocity);
         

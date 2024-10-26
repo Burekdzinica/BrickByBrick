@@ -6,7 +6,7 @@ export class Button {
         this.text = text;
         this.isHovered = false;
 
-        const { width, height, defaultColor, hoverColor, strokeColor, lineWidth, textColor, font, textAlign, textBaseline } = config.button;
+        const { width, height, defaultColor, hoverColor, strokeColor, lineWidth, textColor, font, textAlign, textBaseline } = config;
         
         this.width = width;
         this.height = height;

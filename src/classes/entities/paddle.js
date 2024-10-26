@@ -1,6 +1,6 @@
 export class Paddle {
     constructor(config) {
-        const { width, height, startPosition, color, strokeColor, lineWidth } = config.paddle;
+        const { width, height, startPosition, color, strokeColor, lineWidth } = config;
 
         this.width = width;
         this.height = height;

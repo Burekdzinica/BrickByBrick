@@ -1,8 +1,8 @@
-import { StaticBody } from "./bodies/staticBody.js";
+import { StaticBody } from "../bodies/staticBody.js";
 
 export class Block extends StaticBody {
     constructor(config) {
-        const { width, height, position, color, strokeColor, lineWidth } = config.block;
+        const { width, height, position, color, strokeColor, lineWidth } = config;
         
         super(width, height, position);
 
