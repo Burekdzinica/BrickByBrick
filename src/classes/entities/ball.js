@@ -5,7 +5,7 @@ export class Ball extends RigidBody {
         const { radius, startPosition, velocity, mass, color, strokeColor, lineWidth, startAngle, endAngle, bounceMultiplier } = config;
 
         super(mass, velocity);
-        
+
         this.radius = radius;
         this.position = { x: startPosition.x, y: startPosition.y };
         this.velocity = { x: velocity.x, y: velocity.y };
@@ -18,67 +18,14 @@ export class Ball extends RigidBody {
         this.bounceMultiplier = bounceMultiplier;
     }
 
-    update(deltaTime, canvasWidth, canvasHeight, paddleX, paddleY, paddleWidth, paddleHeight) {
-        this.checkBoundingBox(canvasWidth, canvasHeight);
-        this.checkPaddleBox(paddleX, paddleY, paddleWidth, paddleHeight);
+    update(deltaTime, canvas, paddle) {
+        this.checkBoundingBox(canvas);
+        this.checkPaddleBox(paddle);
         
         this.updatePhysics(deltaTime);
         this.move();
     }
     
-    move() {
-        this.position.x += this.velocity.x;
-        this.position.y += this.velocity.y;
-    }
-
-    // Checks canvas collision
-    checkBoundingBox(canvasWidth, canvasHeight) {
-        let ballSize = this.radius + this.lineWidth / 2;
-
-        // Bounces up
-        if (this.position.y + ballSize >= canvasHeight) {
-            this.position.y = canvasHeight - ballSize; // Prevents sticking
-            this.velocity.y *= -1;
-        } 
-        // Bounces down
-        else if (this.position.y - ballSize <= 0) {
-            this.position.y = ballSize;
-            this.velocity.y *= -1;
-        }
-
-        // Bounces left
-        if (this.position.x + ballSize >= canvasWidth) {
-            this.position.x = canvasWidth - ballSize;
-            this.velocity.x *= -1;
-        } 
-        // Bounces right
-        else if (this.position.x - ballSize <= 0) {
-            this.position.x = ballSize;
-            this.velocity.x *= -1;
-        }
-    }
-
-    // Checks paddle collision
-    checkPaddleBox(paddleX, paddleY, paddleWidth, paddleHeight) {
-        let ballSize = this.radius + this.lineWidth / 2;
-        let paddleCenter = paddleX + paddleWidth / 2; 
-
-        // Checks vertical paddle bounds 
-        if (this.position.y + ballSize >= paddleY && this.position.y - ballSize<= paddleY + paddleHeight) {
-            // Checks horizontal paddle bounds
-            if (this.position.x >= paddleX && this.position.x <= (paddleX + paddleWidth)) {
-                let distanceFromCenter = this.position.x - paddleCenter;
-
-                // Normalize the distance to be between -1 and 1   
-                let normalizedDistance = distanceFromCenter / (paddleWidth / 2);
-
-                this.velocity.x = normalizedDistance * this.bounceMultiplier;
-
-                this.velocity.y *= -1;
-            }
-        }
-    }
-
     render(ctx) {
         ctx.fillStyle = this.color;
         ctx.strokeStyle = this.strokeColor;
@@ -90,5 +37,64 @@ export class Ball extends RigidBody {
         ctx.fill();
         ctx.stroke();
         ctx.closePath();
+    }
+
+    move() {
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+    }
+
+    bounce(posX, width) {
+        let center = posX + width / 2; 
+
+        let distanceFromCenter = this.position.x - center;
+
+        let normalizedDistance = distanceFromCenter / (width / 2);
+
+        this.velocity.x = normalizedDistance * this.bounceMultiplier;
+
+        this.velocity.y *= -1;
+    }
+
+    // Checks canvas collision
+    checkBoundingBox(canvas) {
+        let ballSize = this.radius + this.lineWidth / 2;
+
+        // Bounces up
+        if (this.position.y + ballSize >= canvas.height) {
+            this.position.y = canvas.height - ballSize; // Prevents sticking
+            this.velocity.y *= -1;
+        } 
+
+        // Bounces down
+        else if (this.position.y - ballSize <= 0) {
+            this.position.y = ballSize;
+            this.velocity.y *= -1;
+        }
+
+        // Bounces left
+        if (this.position.x + ballSize >= canvas.width) {
+            this.position.x = canvas.width - ballSize;
+            this.velocity.x *= -1;
+        } 
+
+        // Bounces right
+        else if (this.position.x - ballSize <= 0) {
+            this.position.x = ballSize;
+            this.velocity.x *= -1;
+        }
+    }
+
+    // Checks paddle collision
+    checkPaddleBox(paddle) {
+        let ballSize = this.radius + this.lineWidth / 2;
+
+        // Checks vertical paddle bounds 
+        if (this.position.y + ballSize >= paddle.position.y && this.position.y - ballSize<= paddle.position.y + paddle.height) {
+            // Checks horizontal paddle bounds
+            if (this.position.x >= paddle.position.x && this.position.x <= (paddle.position.x + paddle.width)) {
+                this.bounce(paddle.position.x, paddle.width);
+            }
+        }
     }
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "block": [
+      {
+        "position": {
+          "x": 300,
+          "y": 325
+        },
+        "color": "green"
+      },
+      {
+        "position": {
+          "x": 400,
+          "y": 325
+        },
+        "color": "green"
+      }
+    ]
+  }
+]

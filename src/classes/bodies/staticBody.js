@@ -14,4 +14,24 @@ export class StaticBody {
             pointY <= this.position.y + this.height
         );
     }
+
+    containsBall(ball) {
+        const ballLeft = ball.position.x - ball.radius - (ball.lineWidth / 2);
+        const ballRight = ball.position.x + ball.radius + (ball.lineWidth / 2);
+        const ballTop = ball.position.y - ball.radius - (ball.lineWidth / 2);
+        const ballBottom = ball.position.y + ball.radius + (ball.lineWidth / 2);
+
+        const blockLeft = this.position.x - (this.lineWidth / 2);
+        const blockRight = this.position.x + this.width + (this.lineWidth / 2);
+        const blockTop = this.position.y - (this.lineWidth / 2);
+        const blockBottom = this.position.y + this.height + (this.lineWidth / 2);
+    
+
+        return (
+            ballRight > blockLeft &&
+            ballLeft < blockRight &&
+            ballBottom > blockTop &&
+            ballTop < blockBottom
+        );
+    } 
 }

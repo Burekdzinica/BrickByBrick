@@ -5,6 +5,8 @@ import { Block } from './entities/block.js';
 import { gameState } from './gameStates.js';
 
 import { Button } from './components/button.js';
+import { Text } from './components/text.js';
+
 import { LevelEditor } from './levelEditor.js';
 
 export class Game {
@@ -13,16 +15,21 @@ export class Game {
         this.ctx = this.canvas.getContext("2d");
 
         // Scales the resolution of the drawing
-        const width = this.canvas.clientWidth;
-        const height = this.canvas.clientHeight;
-        this.canvas.width = width * window.devicePixelRatio;
-        this.canvas.height = height * window.devicePixelRatio;
+        const windowWidth = this.canvas.clientWidth;
+        const windowHeight = this.canvas.clientHeight;
+        this.canvas.width = windowWidth * window.devicePixelRatio;
+        this.canvas.height = windowHeight * window.devicePixelRatio;
 
-        this.paddle = new Paddle(config.paddle);
-        this.ball = new Ball(config.ball);
-        this.block = new Block(config.block);
+        const { width, height, strokeColor, lineWidth } = config.block;
+        this.blockWidth = width;
+        this.blockHeight = height;
+        this.blockStrokeColor = strokeColor;
+        this.blockLineWidth = lineWidth;
+    
         this.blocks = [];
 
+        this.paddle = new Paddle(config.paddle, this.canvas);
+        this.ball = new Ball(config.ball);
         this.levelEditor = new LevelEditor(this.canvas, config.block, config.button);
 
         // Buttons
@@ -34,18 +41,27 @@ export class Game {
             new Button(config.button, editButtonPosition, "Edit Mode", this.canvas)
         ];
 
+        // Texts
+        this.winText = new Text(config.text, "green", "60px arial", "You Win!", this.canvas.width / 2, this.canvas.height / 2);
+        this.continueText = new Text(config.text, "lightGray", "35px arial", "Click anything to continue!", this.canvas.width / 2, this.canvas.height / 2 + 100);
+
         // Paddle listener
-        this.canvas.addEventListener("mousemove", this.paddle.handleMouse.bind(this));
+        this.canvas.addEventListener("mousemove", this.handlePaddle.bind(this));
 
         // Reference to the bound listeners
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
         this.handleButtonClickBound = this.handleButtonClick.bind(this);
+        this.handleCanvasClickBound = this.handleCanvasClick.bind(this);
 
         // Button listeners
         this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
         this.canvas.addEventListener("click", this.handleButtonClickBound);
-
+  
         this.currentState = gameState.MAIN_MENU;
+
+        // Wait for click
+        this.waitingForAction = true;
+        this.hasWon = false;
 
         this.lastTime = 0;
     }
@@ -55,19 +71,31 @@ export class Game {
             case gameState.MAIN_MENU: 
                 this.buttons.forEach(button => {
                     button.render(this.ctx)});
-        
+                
                 break;
-            
+                
             case gameState.PLAYING:
-                if (!this.lastTime)
-                    this.lastTime = timestamp;
-        
-                const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
-                this.lastTime = timestamp;
+                if (this.hasWon) {
+                    this.clear();
 
-                this.update(deltaTime, this.canvas.width, this.canvas.height);
+                    this.win();
+                }
+
+                // Render start
+                if (this.waitingForAction)
+                    this.render();
+
+                if (!this.waitingForAction && !this.hasWon) {
+                    if (!this.lastTime)
+                        this.lastTime = timestamp;
+            
+                    const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
+                    this.lastTime = timestamp;
     
-                this.render();
+                    this.update(deltaTime);
+
+                    this.render();
+                }   
 
                 break;
 
@@ -78,15 +106,20 @@ export class Game {
         }
     }
 
-    update(deltaTime, canvasWidth, canvasHeight) {
-        this.ball.update(deltaTime, canvasWidth, canvasHeight, this.paddle.position.x, this.paddle.position.y, this.paddle.width, this.paddle.height);
+    update(deltaTime) {
+        this.ball.update(deltaTime, this.canvas, this.paddle);
 
-
-        // this.block.update(this.ball.position.x, this.ball.position.y);
-
+        // TODO: fix block i want that object gone if possible
         this.blocks.forEach(block => {
-            block.update(this.ball.position.x, this.ball.position.y);
+            if (!block.isDestroyed && block.containsBall(this.ball)) {
+                this.ball.bounce(block.position.x, block.width);
+ 
+                block.isDestroyed = true;
+            }
         });
+
+        if (this.blocks.every(block => block.isDestroyed))
+            this.hasWon = true;
     }
 
     render() {
@@ -94,9 +127,7 @@ export class Game {
 
         this.ball.render(this.ctx);
         this.paddle.render(this.ctx);
-        // this.block.render(this.ctx);
-
-
+  
         this.blocks.forEach(block => {
             block.render(this.ctx);
         });
@@ -105,6 +136,38 @@ export class Game {
     // Clear display
     clear() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    win() {
+        this.winText.render(this.ctx);
+        this.continueText.render(this.ctx);
+    }
+    
+    loadLevel(level) {
+        level = 'levels/' + level + '.json';
+        fetch(level)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const levelData = data[0].block; // This gets the array of blocks
+                this.blocks = levelData.map(blockConfig => 
+                    new Block({ 
+                        width: this.blockWidth,
+                        height: this.blockHeight,
+                        position: blockConfig.position,
+                        color: blockConfig.color,
+                        strokeColor: this.blockStrokeColor,
+                        lineWidth: this.blockLineWidth
+                    })
+                );
+            })
+            .catch(error => {
+                console.error('Error loading level:', error);
+            });
     }
 
     // Does x on x button click
@@ -119,6 +182,10 @@ export class Game {
                 if (button.text === "Play") {
                     this.currentState = gameState.PLAYING;
 
+                    this.loadLevel('levelDemo');
+                    this.canvas.addEventListener('click', this.handleCanvasClickBound);
+
+
                     this.removeButtonListeners();
                     this.clear();
                 } 
@@ -126,14 +193,23 @@ export class Game {
                     this.currentState = gameState.EDIT_MODE;
                     
                     this.canvas.addEventListener("click", this.levelEditor.addBlock.bind(this.levelEditor));
-                    this.canvas.addEventListener("mousemove", this.levelEditor.previewBlock.bind(this.levelEditor));
-
                     
                     this.removeButtonListeners();
                     this.clear();
                 }
             }
         });
+    }
+    
+    // For game start
+    handleCanvasClick(event) {
+        if (this.waitingForAction)
+            this.waitingForAction = false;
+    }
+
+    handlePaddle(event) {
+        if (!this.waitingForAction && !this.hasWon)
+            this.paddle.handleMouse(event);
     }
 
     // Changes button color on hover

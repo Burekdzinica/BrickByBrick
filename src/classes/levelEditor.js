@@ -18,11 +18,13 @@ export class LevelEditor {
 
         const saveButtonPosition = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 200 };
         const loadButtonPosition = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 275 };
+        const undoButtonPosition = { x: canvas.width / 2 - 350, y: canvas.height / 2 + 200 };
         const clearButtonPosition = { x: canvas.width / 2 - 350, y: canvas.height / 2 + 275 };
 
         this.buttons = [
             new Button(buttonConfig, saveButtonPosition, "Save", this.canvas),
             new Button(buttonConfig, loadButtonPosition, "Load", this.canvas),
+            new Button(buttonConfig, undoButtonPosition, "Undo", this.canvas),
             new Button(buttonConfig, clearButtonPosition, "Clear", this.canvas)
         ];
 
@@ -33,29 +35,56 @@ export class LevelEditor {
         // Button listeners
         this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
         this.canvas.addEventListener("click", this.handleButtonClickBound);
+
+        // Number of blocks in vertical and horizontal
+        this.yBlocks = Math.floor((this.canvas.height / 2) / this.height);
+        this.xBlocks = Math.floor((this.canvas.width) / this.width);
     }
 
-    // TODO: fix this render mess cringe
     render() {
         this.clear();
+
+        this.renderGrid();
 
         this.blocks.forEach(block => 
             block.render(this.ctx));
 
         this.buttons.forEach(button => 
             button.render(this.ctx));
-
-        if (this.previewBlock)
-            this.renderPreviewBlock();
     }
 
-    renderPreviewBlock() {
-        this.ctx.strokeStyle = this.previewBlock.strokeColor;
+    // Renders grid system
+    renderGrid() {
+        this.ctx.strokeStyle = "#616060";
         this.ctx.lineWidth = this.lineWidth;
 
         this.ctx.setLineDash([5, 10]);
-        this.ctx.strokeRect(this.previewBlock.position.x, this.previewBlock.position.y, this.previewBlock.width, this.previewBlock.height);
-        this.ctx.setLineDash([]); 
+
+        // Draw vertical grid lines
+        for (let i = 0; i <= this.xBlocks; i++) {
+            const x = i * this.width;
+
+            this.ctx.beginPath();
+
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height / 2);
+
+            this.ctx.stroke();
+        }
+    
+        // Draws horizontal grid lines
+        for (let j = 0; j <= this.yBlocks; j++) {
+            const y = j * this.height;
+
+            this.ctx.beginPath();
+            
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.canvas.width, y);
+
+            this.ctx.stroke();
+        }
+    
+        this.ctx.setLineDash([]);
     }
 
     clear() {
@@ -67,11 +96,14 @@ export class LevelEditor {
         const rect = this.canvas.getBoundingClientRect();
 
         // Centers on click
-        const x = event.clientX - rect.left - this.width / 2; 
-        const y = event.clientY - rect.top - this.height / 2; 
+        const mouseX = event.clientX - rect.left - this.width  / 2; 
+        const mouseY = event.clientY - rect.top - this.height / 2; 
 
         // Only add above half width
-        if (y < this.canvas.height / 2) {
+        if (mouseY < this.canvas.height / 2) {
+            const x = Math.floor(mouseX / this.width) * this.width;
+            const y = Math.floor(mouseY / this.height) * this.height;
+
             const newBlock = new Block({
                 width: this.width,
                 height: this.height,
@@ -81,101 +113,15 @@ export class LevelEditor {
                 lineWidth: this.lineWidth
             });
 
-            this.snapToEdge(newBlock);
-
-            // if (this.isOverlapping(newBlock)) {
-            //     this.snapToBlock(newBlock);
-            // }
-            
             this.blocks.push(newBlock);
-
-            this.render();
         }
-    }
-
-    // Renders preview block on mouse move
-    previewBlock(event) {
-        const rect = this.canvas.getBoundingClientRect();
-
-        // Centers on click
-        const x = event.clientX - rect.left - this.width / 2;
-        const y = event.clientY - rect.top - this.height / 2;
-
-        const previewBlock = {
-            width: this.width,
-            height: this.height,
-            position: { x, y },
-            strokeColor: (y > this.canvas.height / 2 || this.isOverlapping(this.previewBlock)) ? 'red' : 'gray', // Is below half or overlaps
-        };
-
-        this.snapToEdge(previewBlock);
-        // if (this.isOverlapping(previewBlock)) {
-        //     this.snapToBlock(previewBlock);
-        // }
-
-        
-        this.previewBlock = previewBlock;
-
-        this.render();
-    }
-
-    // snapToBlock(newBlock) {
-    //     this.blocks.forEach(block => {
-    //         // Finds block that is overlapping
-    //         if (this.isOverlapping(newBlock)) {
-    //             if 
-
-    //         }
-    //     })
-    // }
-
-
-    // Snaps block from edge
-    snapToEdge(block) {
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        const lineWidth = this.lineWidth;
-
-        // Snaps to left edge
-        if (block.position.x < lineWidth)
-            block.position.x = lineWidth;
-
-        // Snaps to right edge
-        if (block.position.x + block.width > canvasWidth - lineWidth) 
-            block.position.x = canvasWidth - block.width - lineWidth;
-
-        // Snaps to top edge
-        if (block.position.y < lineWidth)
-            block.position.y = lineWidth;
-
-        // Snaps to bottom edge
-        if (block.position.y + block.height > canvasHeight - lineWidth)
-            block.position.y = canvasHeight - block.height - lineWidth;
-    }
-
-    // Overlaps any block
-    isOverlapping(newBlock) {
-        const lineWidth = this.lineWidth;
-
-        return this.blocks.some(block => {
-            return (
-                newBlock.position.x < block.position.x + block.width + lineWidth &&
-                newBlock.position.x + newBlock.width + lineWidth > block.position.x &&
-                newBlock.position.y < block.position.y + block.height + lineWidth &&
-                newBlock.position.y + newBlock.height + lineWidth > block.position.y
-            );
-        });
     }
 
     // Save level to file
     saveFile() {
         const blockData = this.blocks.map(block => ({
-            width: block.width,
-            height: block.height,
             position: block.position,
-            color: block.color,
-            strokeColor: block.strokeColor,
-            lineWidth: block.lineWidth
+            color: block.color
         }));
         
         const levelData = JSON.stringify([{ block: blockData }], null, 2);
@@ -196,26 +142,31 @@ export class LevelEditor {
         URL.revokeObjectURL(url);
     }
 
-    loadLevel() {
-        fetch('./classes/levelData(16).json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const levelData = data[0].block; // This gets the array of blocks
-                this.blocks = levelData.map(blockConfig => 
-                    new Block(blockConfig)
-                );
-
-                this.render();
-            })
-            .catch(error => {
-                console.error('Error loading level:', error);
-            });
-    }
+    // loadLevel() {
+    //     fetch('levels/level1.json')
+    //         .then(response => {
+    //             if (!response.ok) {
+    //                 throw new Error('Network response was not ok');
+    //             }
+    //             return response.json();
+    //         })
+    //         .then(data => {
+    //             const levelData = data[0].block; // This gets the array of blocks
+    //             this.blocks = levelData.map(blockConfig => 
+    //                 new Block({ 
+    //                     width: this.width,
+    //                     height: this.height,
+    //                     position: blockConfig.position,
+    //                     color: blockConfig.color,
+    //                     strokeColor: this.strokeColor,
+    //                     lineWidth: this.lineWidth
+    //                 })
+    //             );
+    //         })
+    //         .catch(error => {
+    //             console.error('Error loading level:', error);
+    //         });
+    // }
 
     // Handles button clicks
     handleButtonClick(event) {
@@ -232,9 +183,11 @@ export class LevelEditor {
                 else if (button.text === "Load") {
                     this.loadLevel();
                 }
+                else if (button.text === "Undo") {
+                    this.blocks.pop();
+                }
                 else if (button.text === "Clear") {
                     this.blocks = [];
-                    this.render();
                 }
             }
         });

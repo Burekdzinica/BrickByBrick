@@ -13,10 +13,10 @@ export class Block extends StaticBody {
         this.isDestroyed = false;
     }
 
-    update(ballX, ballY) {
-        if (this.contains(ballX, ballY))
-            this.isDestroyed = true;
-    }
+    // update(ballX, ballY) {
+    //     if (this.contains(ballX, ballY))
+    //         this.isDestroyed = true;
+    // }
 
     render(ctx) {
         if (!this.isDestroyed) {
@@ -27,7 +27,6 @@ export class Block extends StaticBody {
             // Draws rect with outline
             ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
             ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
-
         }
     }
 }

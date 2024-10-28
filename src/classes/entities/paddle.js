@@ -1,5 +1,6 @@
 export class Paddle {
-    constructor(config) {
+    constructor(config, canvas) {
+        this.canvas = canvas;
         const { width, height, startPosition, color, strokeColor, lineWidth } = config;
 
         this.width = width;
@@ -48,6 +49,6 @@ export class Paddle {
         // Gets mouse x position
         let mouseX = event.clientX - rect.left;
 
-        this.paddle.move(mouseX, this.canvas.width);
+        this.move(mouseX, this.canvas.width);
     }
 }
