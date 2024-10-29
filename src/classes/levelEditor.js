@@ -177,17 +177,21 @@ export class LevelEditor {
 
         this.buttons.forEach(button => {
             if (button.checkPosition(mouseX, mouseY)) {
-                if (button.text === "Save") {
-                    this.saveFile();
-                } 
-                else if (button.text === "Load") {
-                    this.loadLevel();
-                }
-                else if (button.text === "Undo") {
-                    this.blocks.pop();
-                }
-                else if (button.text === "Clear") {
-                    this.blocks = [];
+                switch (button.text) {
+                    case "Save":
+                        this.saveFile();
+                        break;
+                    
+                    // case "Load":
+                    //     this.loadLevel();
+                    //     break;
+
+                    case "Undo":
+                        this.blocks.pop();
+                        break;
+
+                    case "Clear":
+                        this.blocks = [];
                 }
             }
         });
@@ -197,5 +201,10 @@ export class LevelEditor {
     handleButtonHover(event) {
         this.buttons.forEach(button => 
             button.handleMouseHover(event));
+    } 
+
+    removeEventListeners() {
+        this.canvas.removeEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.removeEventListener("click", this.handleButtonClickBound);
     }
 }

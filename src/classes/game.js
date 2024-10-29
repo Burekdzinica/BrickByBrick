@@ -41,9 +41,8 @@ export class Game {
             new Button(config.button, editButtonPosition, "Edit Mode", this.canvas)
         ];
 
-        // Texts
-        this.winText = new Text(config.text, "green", "60px arial", "You Win!", this.canvas.width / 2, this.canvas.height / 2);
-        this.continueText = new Text(config.text, "lightGray", "35px arial", "Click anything to continue!", this.canvas.width / 2, this.canvas.height / 2 + 100);
+        // Text
+        this.text = new Text(config.text);
 
         // Paddle listener
         this.canvas.addEventListener("mousemove", this.handlePaddle.bind(this));
@@ -61,7 +60,14 @@ export class Game {
 
         // Wait for click
         this.waitingForAction = true;
+
         this.hasWon = false;
+        this.hasLost = false;
+
+        this.level = 1;
+
+        this.highscore = this.loadHighscore();
+        this.score = 0; // TODO: how do you handle score after lose, do you start at 0 or at what score you were last level?
 
         this.lastTime = 0;
     }
@@ -75,20 +81,21 @@ export class Game {
                 break;
                 
             case gameState.PLAYING:
-                if (this.hasWon) {
-                    this.clear();
-
-                    this.win();
-                }
-
-                // Render start
+                // Wait for start
                 if (this.waitingForAction)
                     this.render();
 
-                if (!this.waitingForAction && !this.hasWon) {
+                if (this.hasWon)
+                    this.renderWinScreen();
+            
+                else if (this.hasLost) 
+                    this.renderLoseScreen();
+
+                if (!this.waitingForAction && !this.hasWon && !this.hasLost) {
+                    // For frames
                     if (!this.lastTime)
                         this.lastTime = timestamp;
-            
+
                     const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
                     this.lastTime = timestamp;
     
@@ -109,28 +116,87 @@ export class Game {
     update(deltaTime) {
         this.ball.update(deltaTime, this.canvas, this.paddle);
 
+        // Lose ball if it hits bottom
+        const ballSize = this.ball.radius + this.ball.lineWidth / 2;
+        if (this.ball.position.y + ballSize >= this.canvas.height) {
+            // delete this.ball;
+    
+            this.saveHighscore();
+            this.score = 0;
+
+            this.hasLost = true;
+            // return;
+        } 
+        
         // TODO: fix block i want that object gone if possible
         this.blocks.forEach(block => {
             if (!block.isDestroyed && block.containsBall(this.ball)) {
                 this.ball.bounce(block.position.x, block.width);
- 
+
+                this.score += 100;
+
+                // Add highscore if new highscore
+                if (this.score >= this.highscore) 
+                    this.highscore = this.score;
+
                 block.isDestroyed = true;
             }
         });
-
-        if (this.blocks.every(block => block.isDestroyed))
+        
+        // If all blocks are destroyed, you win
+        if (this.blocks.every(block => block.isDestroyed)) {
+            this.level += 1;
             this.hasWon = true;
+        }
+
     }
 
     render() {
         this.clear();
 
+        
         this.ball.render(this.ctx);
         this.paddle.render(this.ctx);
-  
+        
         this.blocks.forEach(block => {
             block.render(this.ctx);
         });
+
+        this.renderScore();
+    }
+
+    renderScore() {
+        let highscore = "Highscore: " + this.highscore;
+        let score = "Score: " + this.score;
+
+        // Highscore positioning
+        const highscoreTextWidth = this.ctx.measureText(highscore).width;
+        const highscoreTextOffset = highscoreTextWidth / 2 - 5;
+        const highscoreXPos = this.ctx.canvas.width - highscoreTextWidth + highscoreTextOffset;
+        const highscoreYPos = 20;
+
+        // Score positioning
+        const scoreTextWidth = this.ctx.measureText(score).width;
+        const scoreTextOffset = scoreTextWidth / 2 - 5;
+        const scoreXPos = this.ctx.canvas.width - scoreTextWidth + scoreTextOffset;
+        const scoreYPos = 60;
+
+        this.text.render(this.ctx, "white", "30px Arial", highscoreXPos, highscoreYPos, highscore);
+        this.text.render(this.ctx, "white", "30px Arial", scoreXPos, scoreYPos, score);
+    }
+
+    renderWinScreen() {
+        this.clear();
+        
+        this.text.render(this.ctx, "green", "60px arial", this.canvas.width / 2, this.canvas.height / 2, "You Win!");
+        this.text.render(this.ctx, "lightgray", "40px arial", this.canvas.width / 2, this.canvas.height / 2 + 100, "Click anything to continue");
+    }
+
+    renderLoseScreen() {
+        this.clear();
+
+        this.text.render(this.ctx, "red", "60px arial", this.canvas.width / 2, this.canvas.height / 2, "You lose!");
+        this.text.render(this.ctx, "lightgray", "40px arial", this.canvas.width / 2, this.canvas.height / 2 + 100, "Click anything to restart");
     }
 
     // Clear display
@@ -138,11 +204,83 @@ export class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    win() {
-        this.winText.render(this.ctx);
-        this.continueText.render(this.ctx);
+    // Does x on x button click
+    handleButtonClick(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+
+        this.buttons.forEach(button => {
+            if (button.checkPosition(mouseX, mouseY)) {
+                switch (button.text) {
+                    case "Play":
+                        this.currentState = gameState.PLAYING;
+
+                        this.loadLevel('levelDemo');
+
+                        this.canvas.addEventListener('click', this.handleCanvasClickBound);
+
+                        // Remove listeners
+                        this.levelEditor.removeEventListeners();
+                        this.removeButtonListeners();
+
+                        this.clear();
+
+                        break;
+
+                    case "Edit Mode":
+                        this.currentState = gameState.EDIT_MODE;
+                    
+                        this.canvas.addEventListener("click", this.levelEditor.addBlock.bind(this.levelEditor));
+                        
+                        // Remove listeners
+                        this.removeButtonListeners();
+
+                        this.clear();
+
+                        break;
+
+                }
+            }
+        });
     }
     
+    // Handles new/restart level and game start
+    handleCanvasClick(event) {
+        if (this.waitingForAction)
+            this.waitingForAction = false;
+
+        else if (this.hasWon) {
+            let level = "level" + this.level;
+
+            this.loadLevel(level);
+
+            this.ball.resetPosition();
+            this.paddle.resetPosition();
+
+            this.waitingForAction = true;
+            this.hasWon = false;
+        }
+
+        else if (this.hasLost) {
+            let level = 'level' + this.level;
+
+            this.loadLevel(level);
+
+            this.ball.resetPosition();
+            this.paddle.resetPosition();
+
+            this.waitingForAction = true;
+            this.hasLost = false;
+        }
+    }
+
+    handlePaddle(event) {
+        if (!this.waitingForAction)
+            this.paddle.handleMouse(event);
+    }
+
     loadLevel(level) {
         level = 'levels/' + level + '.json';
         fetch(level)
@@ -170,46 +308,18 @@ export class Game {
             });
     }
 
-    // Does x on x button click
-    handleButtonClick(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-
-        this.buttons.forEach(button => {
-            if (button.checkPosition(mouseX, mouseY)) {
-                if (button.text === "Play") {
-                    this.currentState = gameState.PLAYING;
-
-                    this.loadLevel('levelDemo');
-                    this.canvas.addEventListener('click', this.handleCanvasClickBound);
-
-
-                    this.removeButtonListeners();
-                    this.clear();
-                } 
-                else if (button.text === "Edit Mode") {
-                    this.currentState = gameState.EDIT_MODE;
-                    
-                    this.canvas.addEventListener("click", this.levelEditor.addBlock.bind(this.levelEditor));
-                    
-                    this.removeButtonListeners();
-                    this.clear();
-                }
-            }
-        });
-    }
-    
-    // For game start
-    handleCanvasClick(event) {
-        if (this.waitingForAction)
-            this.waitingForAction = false;
+    // TODO: highscore undenifed ??? if not in storage
+    loadHighscore() {
+        const storedHighscore = localStorage.getItem("highscore");
+  
+        if (storedHighscore == null) 
+            return 0;
+        else
+            return parseInt(storedHighscore, 10);
     }
 
-    handlePaddle(event) {
-        if (!this.waitingForAction && !this.hasWon)
-            this.paddle.handleMouse(event);
+    saveHighscore() {
+        localStorage.setItem("highscore", this.highscore.toString());
     }
 
     // Changes button color on hover

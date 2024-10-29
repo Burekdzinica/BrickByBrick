@@ -3,6 +3,8 @@ export class Paddle {
         this.canvas = canvas;
         const { width, height, startPosition, color, strokeColor, lineWidth } = config;
 
+        this.startPosition = startPosition;
+
         this.width = width;
         this.height = height;
         this.position = { x: startPosition.x, y: startPosition.y};
@@ -50,5 +52,10 @@ export class Paddle {
         let mouseX = event.clientX - rect.left;
 
         this.move(mouseX, this.canvas.width);
+    }
+
+    resetPosition() {
+        this.position.x = this.startPosition.x;
+        this.position.y = this.startPosition.y;
     }
 }

@@ -6,6 +6,8 @@ export class Ball extends RigidBody {
 
         super(mass, velocity);
 
+        this.startPosition = startPosition;
+
         this.radius = radius;
         this.position = { x: startPosition.x, y: startPosition.y };
         this.velocity = { x: velocity.x, y: velocity.y };
@@ -46,28 +48,29 @@ export class Ball extends RigidBody {
 
     bounce(posX, width) {
         let center = posX + width / 2; 
-
         let distanceFromCenter = this.position.x - center;
 
         let normalizedDistance = distanceFromCenter / (width / 2);
 
         this.velocity.x = normalizedDistance * this.bounceMultiplier;
-
         this.velocity.y *= -1;
+    }
+
+    bounceWithoutY(posX, width) {
+        let center = posX + width / 2; 
+        let distanceFromCenter = this.position.x - center;
+
+        let normalizedDistance = distanceFromCenter / (width / 2);
+
+        this.velocity.x = normalizedDistance * this.bounceMultiplier;
     }
 
     // Checks canvas collision
     checkBoundingBox(canvas) {
-        let ballSize = this.radius + this.lineWidth / 2;
-
-        // Bounces up
-        if (this.position.y + ballSize >= canvas.height) {
-            this.position.y = canvas.height - ballSize; // Prevents sticking
-            this.velocity.y *= -1;
-        } 
+        const ballSize = this.radius + this.lineWidth / 2;
 
         // Bounces down
-        else if (this.position.y - ballSize <= 0) {
+        if (this.position.y - ballSize <= 0) {
             this.position.y = ballSize;
             this.velocity.y *= -1;
         }
@@ -85,16 +88,27 @@ export class Ball extends RigidBody {
         }
     }
 
+    // TODO: bounce right/left if on edge ce se mi da
     // Checks paddle collision
     checkPaddleBox(paddle) {
         let ballSize = this.radius + this.lineWidth / 2;
 
-        // Checks vertical paddle bounds 
-        if (this.position.y + ballSize >= paddle.position.y && this.position.y - ballSize<= paddle.position.y + paddle.height) {
+        // Is on paddle
+        if (this.position.y + ballSize >= paddle.position.y) {
             // Checks horizontal paddle bounds
             if (this.position.x >= paddle.position.x && this.position.x <= (paddle.position.x + paddle.width)) {
-                this.bounce(paddle.position.x, paddle.width);
+                let edgeOffset = paddle.height; // Allows hitting with the edge of the paddle
+
+                // Is going down and isn't bellow paddle 
+                if (this.velocity.y > 0 && this.position.y + ballSize <= paddle.position.y + paddle.height + edgeOffset) {
+                    this.bounce(paddle.position.x, paddle.width);
+                }
             }
         }
+    }
+
+    resetPosition() {
+        this.position.x = this.startPosition.x;
+        this.position.y = this.startPosition.y;
     }
 }

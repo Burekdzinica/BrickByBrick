@@ -1,25 +1,19 @@
 export class Text {
-    constructor(config, color, font, text, posX, posY) {
+    constructor(config,) {
         const { textAlign, textBaseline } = config;
 
         this.textAlign = textAlign;
         this.textBaseline = textBaseline;
-        this.color = color;
-        this.font = font;
-        this.text = text;
-        this.posX = posX;
-        this.posY = posY;
-
     }
 
     update() {
 
     }
 
-    render(ctx) {
-        ctx.fillStyle = this.color;
-        ctx.font = this.font;
+    render(ctx, color, font, posX, posY, text) {
+        ctx.fillStyle = color;
+        ctx.font = font;
         
-        ctx.fillText(this.text, this.posX, this.posY);
+        ctx.fillText(text, posX, posY);
     }
 }
