@@ -2,27 +2,49 @@ import { StaticBody } from "../bodies/staticBody.js";
 
 export class Block extends StaticBody {
     constructor(config) {
-        const { width, height, position, color, strokeColor, lineWidth } = config;
+        // Block config from level data
+        const { width, height, position, hp, strokeColor, lineWidth, powerUp } = config;
         
         super(width, height, position);
 
-        this.color = color;
+        this.hp = hp;
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
-
-        this.isDestroyed = false;
+        this.powerUp = powerUp;
     }
 
-    // update(ballX, ballY) {
-    //     if (this.contains(ballX, ballY))
-    //         this.isDestroyed = true;
-    // }
-
     render(ctx) {
-        if (!this.isDestroyed) {
-            ctx.fillStyle = this.color;
+        if (this.hp > 0 || this.hp === "Unbreakable") {
             ctx.strokeStyle = this.strokeColor;
             ctx.lineWidth = this.lineWidth;
+
+            // Different color depending on hp
+            switch (this.hp) {
+                case 1:
+                    ctx.fillStyle = "#ecf39e";
+                    break;
+                    
+                case 2:
+                    ctx.fillStyle = "#90a955";
+                    break;
+
+                case 3:
+                    ctx.fillStyle = "#4f772d";
+                    break;
+
+                case 4:
+                    ctx.fillStyle = "#31572c";
+                    break;
+
+                case 5:
+                    ctx.fillStyle = "#132a13";
+                    break;
+
+                case "Unbreakable":
+                    ctx.fillStyle = "#333333";
+                    break;
+            }
+            
     
             // Draws rect with outline
             ctx.fillRect(this.position.x, this.position.y, this.width, this.height);

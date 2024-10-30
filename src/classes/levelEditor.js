@@ -6,35 +6,37 @@ export class LevelEditor {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
 
-        const { width, height, color, strokeColor, lineWidth } = blockConfig;
+        const { width, height, hp, strokeColor, lineWidth } = blockConfig;
 
         this.width = width;
         this.height = height;
-        this.color  = color;
+        this.hp = 5;
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
 
         this.blocks = [];
 
+        // Buttons
         const saveButtonPosition = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 200 };
-        const loadButtonPosition = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 275 };
         const undoButtonPosition = { x: canvas.width / 2 - 350, y: canvas.height / 2 + 200 };
         const clearButtonPosition = { x: canvas.width / 2 - 350, y: canvas.height / 2 + 275 };
+        const blocksButtonPosition = { x: canvas.width / 2 + 150, y: canvas.height / 2 + 275 };
 
         this.buttons = [
             new Button(buttonConfig, saveButtonPosition, "Save", this.canvas),
-            new Button(buttonConfig, loadButtonPosition, "Load", this.canvas),
             new Button(buttonConfig, undoButtonPosition, "Undo", this.canvas),
-            new Button(buttonConfig, clearButtonPosition, "Clear", this.canvas)
+            new Button(buttonConfig, clearButtonPosition, "Clear", this.canvas),
+            new Button(buttonConfig, blocksButtonPosition, "Blocks", this.canvas)
         ];
 
         // Reference to the bound listeners
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
         this.handleButtonClickBound = this.handleButtonClick.bind(this);
+        this.handleKeyPressBound = this.handleKeyPress.bind(this);
 
-        // Button listeners
-        this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
-        this.canvas.addEventListener("click", this.handleButtonClickBound);
+        this.addButtonListeners();
+
+        document.addEventListener("keydown", this.handleKeyPressBound);
 
         // Number of blocks in vertical and horizontal
         this.yBlocks = Math.floor((this.canvas.height / 2) / this.height);
@@ -49,8 +51,12 @@ export class LevelEditor {
         this.blocks.forEach(block => 
             block.render(this.ctx));
 
-        this.buttons.forEach(button => 
-            button.render(this.ctx));
+        this.buttons.forEach(button => {
+            if (button.text.startsWith("Block"))
+                button.text = "Block: " + this.hp;
+
+            button.render(this.ctx);
+        })
     }
 
     // Renders grid system
@@ -108,7 +114,7 @@ export class LevelEditor {
                 width: this.width,
                 height: this.height,
                 position: { x, y },
-                color: this.color,
+                hp: this.hp,
                 strokeColor: this.strokeColor,
                 lineWidth: this.lineWidth
             });
@@ -121,7 +127,7 @@ export class LevelEditor {
     saveFile() {
         const blockData = this.blocks.map(block => ({
             position: block.position,
-            color: block.color
+            hp: block.hp
         }));
         
         const levelData = JSON.stringify([{ block: blockData }], null, 2);
@@ -142,32 +148,13 @@ export class LevelEditor {
         URL.revokeObjectURL(url);
     }
 
-    // loadLevel() {
-    //     fetch('levels/level1.json')
-    //         .then(response => {
-    //             if (!response.ok) {
-    //                 throw new Error('Network response was not ok');
-    //             }
-    //             return response.json();
-    //         })
-    //         .then(data => {
-    //             const levelData = data[0].block; // This gets the array of blocks
-    //             this.blocks = levelData.map(blockConfig => 
-    //                 new Block({ 
-    //                     width: this.width,
-    //                     height: this.height,
-    //                     position: blockConfig.position,
-    //                     color: blockConfig.color,
-    //                     strokeColor: this.strokeColor,
-    //                     lineWidth: this.lineWidth
-    //                 })
-    //             );
-    //         })
-    //         .catch(error => {
-    //             console.error('Error loading level:', error);
-    //         });
-    // }
-
+    changeBlock() {
+        this.hp = this.hp % 6 + 1;
+        
+        if (this.hp === 6)
+            this.hp = "Unbreakable";
+    }
+    
     // Handles button clicks
     handleButtonClick(event) {
         const rect = this.canvas.getBoundingClientRect();
@@ -182,19 +169,30 @@ export class LevelEditor {
                         this.saveFile();
                         break;
                     
-                    // case "Load":
-                    //     this.loadLevel();
-                    //     break;
-
                     case "Undo":
                         this.blocks.pop();
                         break;
 
                     case "Clear":
                         this.blocks = [];
+                        break;
+
                 }
+
+                if (button.text.startsWith("Block")) 
+                    this.changeBlock();
             }
         });
+    }
+
+    // Change block hp
+    handleKeyPress(event) {
+        if (event.key == '6')
+            this.hp = "Unbreakable";
+
+        if (event.key >= '1' && event.key <= '5') {
+            this.hp = parseInt(event.key);
+        }
     }
 
     // Changes button color on hover
@@ -203,7 +201,12 @@ export class LevelEditor {
             button.handleMouseHover(event));
     } 
 
-    removeEventListeners() {
+    addButtonListeners() {
+        this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.addEventListener("click", this.handleButtonClickBound);
+    }
+
+    removeButtonListeners() {
         this.canvas.removeEventListener("mousemove", this.handleButtonHoverBound);
         this.canvas.removeEventListener("click", this.handleButtonClickBound);
     }

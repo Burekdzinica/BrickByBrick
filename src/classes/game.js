@@ -1,6 +1,7 @@
 import { Paddle } from './entities/paddle.js';
 import { Ball } from './entities/ball.js';
 import { Block } from './entities/block.js';
+import { PowerUp } from './entities/powerUp.js';
 
 import { gameState } from './gameStates.js';
 
@@ -8,11 +9,14 @@ import { Button } from './components/button.js';
 import { Text } from './components/text.js';
 
 import { LevelEditor } from './levelEditor.js';
+import { RigidBody } from './bodies/rigidBody.js';
 
 export class Game {
     constructor(config) {
         this.canvas = document.getElementById("game");
         this.ctx = this.canvas.getContext("2d");
+
+        this.config = config;
 
         // Scales the resolution of the drawing
         const windowWidth = this.canvas.clientWidth;
@@ -25,11 +29,16 @@ export class Game {
         this.blockHeight = height;
         this.blockStrokeColor = strokeColor;
         this.blockLineWidth = lineWidth;
+
+        this.startPaddleWidth = config.paddle.width;
     
         this.blocks = [];
+        this.powerUps = [];
+
+        this.balls = [];
+        this.balls.push(new Ball(config.ball));
 
         this.paddle = new Paddle(config.paddle, this.canvas);
-        this.ball = new Ball(config.ball);
         this.levelEditor = new LevelEditor(this.canvas, config.block, config.button);
 
         // Buttons
@@ -51,11 +60,15 @@ export class Game {
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
         this.handleButtonClickBound = this.handleButtonClick.bind(this);
         this.handleCanvasClickBound = this.handleCanvasClick.bind(this);
+        this.handleKeyPressBound = this.handleKeyPress.bind(this);
+
+        this.addBlockBound = this.levelEditor.addBlock.bind(this.levelEditor);
 
         // Button listeners
-        this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
-        this.canvas.addEventListener("click", this.handleButtonClickBound);
-  
+        this.addButtonListeners();
+
+        document.addEventListener("keydown", this.handleKeyPressBound);
+
         this.currentState = gameState.MAIN_MENU;
 
         // Wait for click
@@ -114,37 +127,96 @@ export class Game {
     }
 
     update(deltaTime) {
-        this.ball.update(deltaTime, this.canvas, this.paddle);
+        this.balls.forEach(ball => {
+            ball.update(deltaTime, this.canvas, this.paddle);
+        })
 
-        // Lose ball if it hits bottom
-        const ballSize = this.ball.radius + this.ball.lineWidth / 2;
-        if (this.ball.position.y + ballSize >= this.canvas.height) {
-            // delete this.ball;
+        // Update powerUps
+        this.powerUps.forEach((powerUp, index) => {
+            powerUp.update(deltaTime);
     
+            // Add ball if it hits paddle
+            if (powerUp.checkPaddleBox(this.paddle)) {
+                if (powerUp.power == "Ball") {
+                    const position = { x: this.paddle.position.x + this.paddle.width / 2, y: this.paddle.position.y - this.paddle.height}; // Center of paddle spawn
+                    this.addBall(position);
+                }
+
+                else 
+                    this.increasePaddleSize();
+
+                // Remove that powerup
+                this.powerUps.splice(index, 1);
+            }
+
+            // Remove if it falls
+            else if (powerUp.position.y >= this.canvas.height)
+                this.powerUps.splice(index, 1)
+        });
+
+        let lastHitBlock = null;
+    
+        // Block collision logic
+        this.balls.forEach(ball => {
+            this.blocks.forEach(block => {
+                // If it has already hit a block or hit unbreakable block return
+                if (lastHitBlock || block.hp === "Unbreakable") 
+                    return;
+                
+                else if (block.containsBall(ball)) {
+                    ball.bounce(block.position.x, block.width);
+                    
+                    block.hp--;
+                    this.score += 100;
+                    
+                    // Destroy block if hp zero
+                    if (block.hp === 0) {
+                        // If block has powerup drop it
+                        if (block.powerUp) {
+                            let power;
+                            if (Math.random() < 0.5) 
+                                power = "Ball";
+                            
+                            else {
+                                power = "Size";
+                            }
+                            
+                            this.powerUps.push(new PowerUp(this.config.powerUp, block.position, block.width, power));
+                        }
+
+                            this.blocks = this.blocks.filter(b => 
+                                b !== block);
+                        }
+                    
+                    // Add highscore if new highscore
+                    if (this.score >= this.highscore) 
+                        this.highscore = this.score;
+                    
+                    lastHitBlock = block;
+                }
+            })
+        })
+        
+        // Delete ball that falls
+        this.balls = this.balls.filter(ball => {
+            const ballSize = ball.radius + ball.lineWidth / 2;
+
+            if (ball.position.y + ballSize >= this.canvas.height)
+                return false;
+
+            return true;
+        });
+
+        // Lose when you lose all balls
+        if (this.balls.length === 0) {
             this.saveHighscore();
             this.score = 0;
-
+    
             this.hasLost = true;
-            // return;
-        } 
-        
-        // TODO: fix block i want that object gone if possible
-        this.blocks.forEach(block => {
-            if (!block.isDestroyed && block.containsBall(this.ball)) {
-                this.ball.bounce(block.position.x, block.width);
-
-                this.score += 100;
-
-                // Add highscore if new highscore
-                if (this.score >= this.highscore) 
-                    this.highscore = this.score;
-
-                block.isDestroyed = true;
-            }
-        });
-        
-        // If all blocks are destroyed, you win
-        if (this.blocks.every(block => block.isDestroyed)) {
+        }
+  
+        // You win if zero blocks left not including unbreakable
+        if (this.blocks.length == 0 || this.blocks.every(block => block.hp === "Unbreakable")) {
             this.level += 1;
             this.hasWon = true;
         }
@@ -154,8 +226,14 @@ export class Game {
     render() {
         this.clear();
 
-        
-        this.ball.render(this.ctx);
+        this.powerUps.forEach(powerUp => {
+            powerUp.render(this.ctx);
+        })
+
+        this.balls.forEach(ball => {
+            ball.render(this.ctx);
+        })
+
         this.paddle.render(this.ctx);
         
         this.blocks.forEach(block => {
@@ -204,6 +282,30 @@ export class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    addBall(position) {
+        const { radius, velocity, mass, color, strokeColor, lineWidth, startAngle, endAngle, bounceMultiplier } = this.config.ball;
+
+        this.balls.push(new Ball({
+            radius: radius,
+            startPosition: {
+                x: position.x,
+                y: position.y
+            },
+            velocity: velocity,
+            mass: mass,
+            color: color,
+            strokeColor: strokeColor,
+            lineWidth: lineWidth,
+            startAngle: startAngle,
+            endAngle: endAngle,
+            bounceMultiplier: bounceMultiplier
+        }));
+    }
+
+    increasePaddleSize() {
+        this.paddle.width += 10;
+    }
+
     // Does x on x button click
     handleButtonClick(event) {
         const rect = this.canvas.getBoundingClientRect();
@@ -217,12 +319,12 @@ export class Game {
                     case "Play":
                         this.currentState = gameState.PLAYING;
 
-                        this.loadLevel('levelDemo');
+                        this.loadLevel('level1');
 
                         this.canvas.addEventListener('click', this.handleCanvasClickBound);
 
                         // Remove listeners
-                        this.levelEditor.removeEventListeners();
+                        this.levelEditor.removeButtonListeners();
                         this.removeButtonListeners();
 
                         this.clear();
@@ -232,7 +334,8 @@ export class Game {
                     case "Edit Mode":
                         this.currentState = gameState.EDIT_MODE;
                     
-                        this.canvas.addEventListener("click", this.levelEditor.addBlock.bind(this.levelEditor));
+                        this.canvas.addEventListener("click", this.addBlockBound);
+                        this.levelEditor.addButtonListeners();
                         
                         // Remove listeners
                         this.removeButtonListeners();
@@ -254,9 +357,14 @@ export class Game {
         else if (this.hasWon) {
             let level = "level" + this.level;
 
+            // Reset to 1 ball
+            this.balls = [];
+            this.powerUps = [];
+            this.balls.push(new Ball(this.config.ball));
+          
             this.loadLevel(level);
 
-            this.ball.resetPosition();
+            this.paddle.resetWidth();
             this.paddle.resetPosition();
 
             this.waitingForAction = true;
@@ -268,7 +376,11 @@ export class Game {
 
             this.loadLevel(level);
 
-            this.ball.resetPosition();
+            this.powerUps = [];
+
+            this.balls.push(new Ball(this.config.ball));
+            
+            this.paddle.resetWidth();
             this.paddle.resetPosition();
 
             this.waitingForAction = true;
@@ -281,6 +393,35 @@ export class Game {
             this.paddle.handleMouse(event);
     }
 
+    // Esc to menu
+    handleKeyPress(event) {
+        if (event.key == "Escape" && this.currentState != gameState.MAIN_MENU) {
+            this.currentState = gameState.MAIN_MENU;
+
+            this.addButtonListeners();
+            this.canvas.removeEventListener('click', this.handleCanvasClickBound);
+            this.canvas.removeEventListener("click", this.addBlockBound);
+
+            this.clear();
+        }
+    }
+
+    // Changes button color on hover
+    handleButtonHover(event) {
+        this.buttons.forEach(button => 
+            button.handleMouseHover(event));
+    }
+
+    addButtonListeners() {
+        this.canvas.addEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.addEventListener("click", this.handleButtonClickBound);
+    }
+
+    removeButtonListeners() {
+        this.canvas.removeEventListener("mousemove", this.handleButtonHoverBound);
+        this.canvas.removeEventListener("click", this.handleButtonClickBound);
+    }
+    
     loadLevel(level) {
         level = 'levels/' + level + '.json';
         fetch(level)
@@ -292,23 +433,27 @@ export class Game {
             })
             .then(data => {
                 const levelData = data[0].block; // This gets the array of blocks
-                this.blocks = levelData.map(blockConfig => 
-                    new Block({ 
+                this.blocks = levelData.map(blockConfig => {
+                    // Add a drop chance for a powerup
+                    const isPowerUp = Math.random() < 0.33 ; // 33% drop chance
+      
+                    return new Block({ 
                         width: this.blockWidth,
                         height: this.blockHeight,
                         position: blockConfig.position,
-                        color: blockConfig.color,
+                        hp: blockConfig.hp,
                         strokeColor: this.blockStrokeColor,
-                        lineWidth: this.blockLineWidth
+                        lineWidth: this.blockLineWidth,
+                        powerUp: isPowerUp
                     })
-                );
+
+                });
             })
             .catch(error => {
                 console.error('Error loading level:', error);
             });
     }
 
-    // TODO: highscore undenifed ??? if not in storage
     loadHighscore() {
         const storedHighscore = localStorage.getItem("highscore");
   
@@ -320,16 +465,5 @@ export class Game {
 
     saveHighscore() {
         localStorage.setItem("highscore", this.highscore.toString());
-    }
-
-    // Changes button color on hover
-    handleButtonHover(event) {
-        this.buttons.forEach(button => 
-            button.handleMouseHover(event));
-    }
-
-    removeButtonListeners() {
-        this.canvas.removeEventListener("mousemove", this.handleButtonHoverBound);
-        this.canvas.removeEventListener("click", this.handleButtonClickBound);
     }
 }

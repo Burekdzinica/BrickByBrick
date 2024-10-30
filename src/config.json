@@ -15,7 +15,7 @@
         "lineWidth": 2,
         "startAngle": 0,
         "endAngle": 7,
-        "bounceMultiplier": 3
+        "bounceMultiplier": 2
     },
     "paddle": {
         "width": 150,
@@ -29,13 +29,12 @@
         "lineWidth": 2
     },
     "block": {
-        "width": 100,
+        "width": 80,
         "height": 25,
         "position": {
             "x": 400,
             "y": 200
         },
-        "color": "green",
         "strokeColor": "black",
         "lineWidth": 2
     },
@@ -54,5 +53,18 @@
     "text": {
         "textAlign": "center",
         "textBaseline": "middle"
+    },
+    "powerUp": {
+        "radius": 12.5,
+        "velocity": {
+            "x": 0,
+            "y": 3
+        },
+        "mass": 1,
+        "color": "green",
+        "strokeColor": "black",
+        "lineWidth": 2,
+        "startAngle": 0,
+        "endAngle": 7
     }
 }

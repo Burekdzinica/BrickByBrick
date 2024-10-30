@@ -4,6 +4,7 @@ export class Paddle {
         const { width, height, startPosition, color, strokeColor, lineWidth } = config;
 
         this.startPosition = startPosition;
+        this.startWidth = width;
 
         this.width = width;
         this.height = height;
@@ -57,5 +58,9 @@ export class Paddle {
     resetPosition() {
         this.position.x = this.startPosition.x;
         this.position.y = this.startPosition.y;
+    }
+
+    resetWidth() {
+        this.width = this.startWidth;
     }
 }

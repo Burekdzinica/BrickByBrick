@@ -25,6 +25,23 @@ export class Button {
     update() {
 
     }
+    render(ctx) {
+        
+        ctx.fillStyle = this.color;
+        ctx.strokeStyle = this.strokeColor;
+        ctx.lineWidth = this.lineWidth;
+        
+        // Draw the button rectangle with outline
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+        ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
+        
+        // Draw text
+        ctx.fillStyle = this.textColor; 
+        ctx.font = this.font;
+        ctx.textAlign = this.textAlign;
+        ctx.textBaseline = this.textBaseline; 
+        ctx.fillText(this.text, this.position.x + this.width / 2, this.position.y + this.height / 2);   
+    }
 
     checkPosition(mouseX, mouseY) {
         return (
@@ -48,21 +65,7 @@ export class Button {
         else 
             this.color = this.defaultColor;
     }   
+    
 
-    render(ctx) {
-        ctx.fillStyle = this.color;
-        ctx.strokeStyle = this.strokeColor;
-        ctx.lineWidth = this.lineWidth;
-        
-        // Draw the button rectangle with outline
-        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
-
-        // Draw text
-        ctx.fillStyle = this.textColor; 
-        ctx.font = this.font;
-        ctx.textAlign = this.textAlign;
-        ctx.textBaseline = this.textBaseline; 
-        ctx.fillText(this.text, this.position.x + this.width / 2, this.position.y + this.height / 2);   
-    }
+    
 }
