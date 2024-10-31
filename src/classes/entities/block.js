@@ -11,6 +11,8 @@ export class Block extends StaticBody {
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
         this.powerUp = powerUp;
+
+        console.log(this.lineWidth);
     }
 
     render(ctx) {

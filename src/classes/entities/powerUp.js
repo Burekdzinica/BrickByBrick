@@ -26,19 +26,26 @@ export class PowerUp extends RigidBody {
         // Change img depending on power
         switch (this.power) {
             case "Ball":
-                this.image.src = "../../res/powerUp_ball.png";
+                this.image.src = "../../res/assets/powerUp_ball.png";
                 break;
 
             case "Size":
-                this.image.src = "../../res/powerUp_size.png";
+                this.image.src = "../../res/assets/powerUp_size.png";
                 break;
         }
 
+        this.glowOpacity = 1;
+        this.glowDirection = -1; // -1 fading out, 1 fading in
     }
 
     update(deltaTime) {
         this.updatePhysics(deltaTime);
         this.move();
+
+        // Pulse effect 
+        this.glowOpacity += 0.025 * this.glowDirection;
+        if (this.glowOpacity >= 1 || this.glowOpacity <= 0.5)
+            this.glowDirection *= -1;
     }
 
     render(ctx) {
@@ -46,6 +53,8 @@ export class PowerUp extends RigidBody {
             return;
     
         ctx.save();
+
+        ctx.globalAlpha = this.glowOpacity;
     
         // Draw a circular clipping path
         ctx.beginPath();

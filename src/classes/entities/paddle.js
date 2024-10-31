@@ -8,7 +8,7 @@ export class Paddle {
 
         this.width = width;
         this.height = height;
-        this.position = { x: startPosition.x, y: startPosition.y};
+        this.position = startPosition;
         this.color = color;
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
@@ -56,7 +56,8 @@ export class Paddle {
     }
 
     resetPosition() {
-        this.position.x = this.startPosition.x;
+        // this.position.x = this.startPosition.x;
+        this.position.x = (this.canvas.width - this.width) / 2;
         this.position.y = this.startPosition.y;
     }
 

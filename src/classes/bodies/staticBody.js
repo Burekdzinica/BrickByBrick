@@ -25,7 +25,6 @@ export class StaticBody {
         const blockRight = this.position.x + this.width + (this.lineWidth / 2);
         const blockTop = this.position.y - (this.lineWidth / 2);
         const blockBottom = this.position.y + this.height + (this.lineWidth / 2);
-    
 
         return (
             ballRight > blockLeft &&

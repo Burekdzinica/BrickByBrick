@@ -1,5 +1,5 @@
-import { Block } from "./entities/block.js";
-import { Button } from "./components/button.js";
+import { Block } from "../entities/block.js";
+import { Button } from "../components/button.js";
 
 export class LevelEditor {
     constructor(canvas, blockConfig, buttonConfig) {
@@ -33,8 +33,6 @@ export class LevelEditor {
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
         this.handleButtonClickBound = this.handleButtonClick.bind(this);
         this.handleKeyPressBound = this.handleKeyPress.bind(this);
-
-        this.addButtonListeners();
 
         document.addEventListener("keydown", this.handleKeyPressBound);
 

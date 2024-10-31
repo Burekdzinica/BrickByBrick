@@ -8,8 +8,8 @@ import { gameState } from './gameStates.js';
 import { Button } from './components/button.js';
 import { Text } from './components/text.js';
 
-import { LevelEditor } from './levelEditor.js';
-import { RigidBody } from './bodies/rigidBody.js';
+import { LevelEditor } from './tools/levelEditor.js';
+import { Options } from './tools/options.js';
 
 export class Game {
     constructor(config) {
@@ -34,20 +34,24 @@ export class Game {
     
         this.blocks = [];
         this.powerUps = [];
-
         this.balls = [];
-        this.balls.push(new Ball(config.ball));
 
+        
         this.paddle = new Paddle(config.paddle, this.canvas);
         this.levelEditor = new LevelEditor(this.canvas, config.block, config.button);
+        this.options = new Options(this.canvas, this.config, this);
+        
+        this.balls.push(new Ball(config.ball));
 
         // Buttons
         const playButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 - 60 };
-        const editButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 20 };
+        const editButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 100 };
+        const optionsButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 20 };
 
         this.buttons = [
             new Button(config.button, playButtonPosition, "Play", this.canvas),
-            new Button(config.button, editButtonPosition, "Edit Mode", this.canvas)
+            new Button(config.button, editButtonPosition, "Options", this.canvas),
+            new Button(config.button, optionsButtonPosition, "Edit Mode", this.canvas)
         ];
 
         // Text
@@ -67,11 +71,12 @@ export class Game {
         // Button listeners
         this.addButtonListeners();
 
+        // Listener for esc
         document.addEventListener("keydown", this.handleKeyPressBound);
 
         this.currentState = gameState.MAIN_MENU;
 
-        // Wait for click
+        // Wait for click to start game
         this.waitingForAction = true;
 
         this.hasWon = false;
@@ -80,7 +85,26 @@ export class Game {
         this.level = 1;
 
         this.highscore = this.loadHighscore();
-        this.score = 0; // TODO: how do you handle score after lose, do you start at 0 or at what score you were last level?
+        this.score = 0;
+
+        // Audio
+        this.music = new Audio("../../res/audio/music.mp3");
+        this.music.loop = true;
+        this.music.play();
+
+        this.brickDestroyedSound = new Audio("../../res/audio/brickDestroyed.mp3");
+        this.brickDestroyedSound.volume = 0.5;
+
+        this.powerUpSpawnSound = new Audio("../../res/audio/powerUpSpawn.mp3")
+        this.powerUpPickupSound = new Audio("../../res/audio/powerPickup2.mp3");
+
+        this.winSound = new Audio("../../res/audio/win.mp3");
+        this.loseSound = new Audio("../../res/audio/lose.mp3");
+
+        // Load settings from localStorage
+        this.changeMusicVolume();
+        this.changeSoundVolume();
+        this.changeDifficulty();
 
         this.lastTime = 0;
     }
@@ -88,8 +112,12 @@ export class Game {
     play(timestamp) {
         switch (this.currentState) {
             case gameState.MAIN_MENU: 
+                this.clear();
+
                 this.buttons.forEach(button => {
                     button.render(this.ctx)});
+                    
+                this.text.render(this.ctx, "#C9C9C9", "80px arial", this.canvas.width / 2 , this.canvas.height / 2 - 200, "Brick by Brick");
                 
                 break;
                 
@@ -121,9 +149,17 @@ export class Game {
 
             case gameState.EDIT_MODE:
                 this.levelEditor.render();
-
+                
                 break;  
-        }
+                
+            case gameState.OPTIONS:
+                this.changeMusicVolume();
+                this.changeSoundVolume();
+
+                this.options.render();
+                
+                break;
+            }
     }
 
     update(deltaTime) {
@@ -137,6 +173,8 @@ export class Game {
     
             // Add ball if it hits paddle
             if (powerUp.checkPaddleBox(this.paddle)) {
+                this.powerUpPickupSound.play();
+
                 if (powerUp.power == "Ball") {
                     const position = { x: this.paddle.position.x + this.paddle.width / 2, y: this.paddle.position.y - this.paddle.height}; // Center of paddle spawn
                     this.addBall(position);
@@ -154,45 +192,62 @@ export class Game {
                 this.powerUps.splice(index, 1)
         });
 
-        let lastHitBlock = null;
-    
+        
         // Block collision logic
         this.balls.forEach(ball => {
+            // Prevents ball going between blocks
+            let hitUnbreakable = false;
+            let lastHitBlock = false;
+
             this.blocks.forEach(block => {
                 // If it has already hit a block or hit unbreakable block return
-                if (lastHitBlock || block.hp === "Unbreakable") 
+                if (lastHitBlock || hitUnbreakable)
                     return;
-                
-                else if (block.containsBall(ball)) {
-                    ball.bounce(block.position.x, block.width);
-                    
-                    block.hp--;
-                    this.score += 100;
-                    
-                    // Destroy block if hp zero
-                    if (block.hp === 0) {
-                        // If block has powerup drop it
-                        if (block.powerUp) {
-                            let power;
-                            if (Math.random() < 0.5) 
-                                power = "Ball";
+            
+                if (block.containsBall(ball)) {
+                    if (block.hp === "Unbreakable") {
+                        ball.bounceOfBlock(block.width);
+
+                        hitUnbreakable = true;
+                        lastHitBlock = true;
+
+                        return;
+                    }
+    
+                    if (block.hp !== "Unbreakable") {
+                        ball.bounceOfBlock(block.width);
+
+                        block.hp--;
+                        this.score += 100;
+                        
+                        // Destroy block if hp zero
+                        if (block.hp === 0) {
                             
-                            else {
-                                power = "Size";
+                            this.brickDestroyedSound.play();
+    
+                            // If block has powerup drop it
+                            if (block.powerUp) {
+                                this.powerUpSpawnSound.play();
+    
+                                let power;
+                                if (Math.random() < 0.5) 
+                                    power = "Ball";
+                                
+                                else
+                                    power = "Size";
+                        
+                                this.powerUps.push(new PowerUp(this.config.powerUp, block.position, block.width, power));
                             }
                             
-                            this.powerUps.push(new PowerUp(this.config.powerUp, block.position, block.width, power));
+                            this.blocks = this.blocks.filter(b => b !== block);
                         }
-
-                            this.blocks = this.blocks.filter(b => 
-                                b !== block);
-                        }
-                    
-                    // Add highscore if new highscore
-                    if (this.score >= this.highscore) 
-                        this.highscore = this.score;
-                    
-                    lastHitBlock = block;
+                        
+                        // Add highscore if new highscore
+                        if (this.score >= this.highscore) 
+                            this.highscore = this.score;
+                        
+                        lastHitBlock = true;
+                    } 
                 }
             })
         })
@@ -207,17 +262,26 @@ export class Game {
             return true;
         });
 
-        // Lose when you lose all balls
+        // LOSE when you lose all balls
         if (this.balls.length === 0) {
+            this.loseSound.play();
+            
             this.saveHighscore();
             this.score = 0;
     
             this.hasLost = true;
         }
   
-        // You win if zero blocks left not including unbreakable
+        // WIN if zero blocks left not including unbreakable
         if (this.blocks.length == 0 || this.blocks.every(block => block.hp === "Unbreakable")) {
-            this.level += 1;
+            this.winSound.play();
+
+            // If you played all levels(5), cycle through them
+            if (this.level === 5)
+                this.level = Math.floor(Math.random() * 5) + 1;
+            else
+                this.level += 1;
+
             this.hasWon = true;
         }
 
@@ -300,10 +364,55 @@ export class Game {
             endAngle: endAngle,
             bounceMultiplier: bounceMultiplier
         }));
+        this.changeSoundVolume();
     }
 
     increasePaddleSize() {
         this.paddle.width += 10;
+    }
+
+    // Difficulty based on paddle size
+    changeDifficulty() {
+        const storedDifficulty = localStorage.getItem("difficulty");
+
+        switch (storedDifficulty) {
+            case this.options.difficulties.EASY:
+                this.paddle.width = this.startPaddleWidth + 50;
+                break;
+
+            case this.options.difficulties.NORMAL:
+                this.paddle.width = this.startPaddleWidth;
+                break;
+            
+            case this.options.difficulties.HARD:
+                this.paddle.width = this.startPaddleWidth - 50;
+                break;
+
+            case this.options.difficulties.NIGHTMARE:
+                this.paddle.width = this.startPaddleWidth - 130;
+                break;   
+        }
+    }
+
+    changeMusicVolume() {
+        const storedMusicVolume = parseInt(localStorage.getItem("musicVolume"), 10);
+
+        this.music.volume = storedMusicVolume
+    }
+
+    changeSoundVolume() {
+        const storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
+
+
+        this.balls.forEach(ball => {
+            ball.baseVolume = storedSoundVolume;
+        });
+
+        this.brickDestroyedSound.volume = storedSoundVolume;
+        this.loseSound.volume = storedSoundVolume;
+        this.winSound.volume = storedSoundVolume;
+        this.powerUpPickupSound.volume = storedSoundVolume;
+        this.powerUpSpawnSound.volume = storedSoundVolume;
     }
 
     // Does x on x button click
@@ -319,7 +428,14 @@ export class Game {
                     case "Play":
                         this.currentState = gameState.PLAYING;
 
-                        this.loadLevel('level1');
+                        this.changeDifficulty();
+                        this.paddle.resetPosition();
+                        
+                        // Load only if no blocks have been loaded yet
+                        if (this.blocks.length == 0) {
+                            let level = "level" + this.level;
+                            this.loadLevel(level);
+                        }
 
                         this.canvas.addEventListener('click', this.handleCanvasClickBound);
 
@@ -327,20 +443,25 @@ export class Game {
                         this.levelEditor.removeButtonListeners();
                         this.removeButtonListeners();
 
-                        this.clear();
-
                         break;
 
                     case "Edit Mode":
                         this.currentState = gameState.EDIT_MODE;
                     
-                        this.canvas.addEventListener("click", this.addBlockBound);
                         this.levelEditor.addButtonListeners();
+                        this.canvas.addEventListener("click", this.addBlockBound);
                         
                         // Remove listeners
                         this.removeButtonListeners();
 
-                        this.clear();
+                        break;
+
+                    case "Options":
+                        this.currentState = gameState.OPTIONS;
+
+                        this.options.addButtonListeners();
+
+                        this.removeButtonListeners();
 
                         break;
 
@@ -361,10 +482,12 @@ export class Game {
             this.balls = [];
             this.powerUps = [];
             this.balls.push(new Ball(this.config.ball));
+
+            this.changeSoundVolume();
           
             this.loadLevel(level);
 
-            this.paddle.resetWidth();
+            this.changeDifficulty();
             this.paddle.resetPosition();
 
             this.waitingForAction = true;
@@ -372,6 +495,7 @@ export class Game {
         }
 
         else if (this.hasLost) {
+            this.level = 1; // Start at zero if you lose
             let level = 'level' + this.level;
 
             this.loadLevel(level);
@@ -379,8 +503,9 @@ export class Game {
             this.powerUps = [];
 
             this.balls.push(new Ball(this.config.ball));
+
+            this.changeSoundVolume();
             
-            this.paddle.resetWidth();
             this.paddle.resetPosition();
 
             this.waitingForAction = true;
@@ -401,6 +526,9 @@ export class Game {
             this.addButtonListeners();
             this.canvas.removeEventListener('click', this.handleCanvasClickBound);
             this.canvas.removeEventListener("click", this.addBlockBound);
+
+            this.levelEditor.addButtonListeners();
+            this.options.removeButtonListeners();
 
             this.clear();
         }
@@ -434,8 +562,8 @@ export class Game {
             .then(data => {
                 const levelData = data[0].block; // This gets the array of blocks
                 this.blocks = levelData.map(blockConfig => {
-                    // Add a drop chance for a powerup
-                    const isPowerUp = Math.random() < 0.33 ; // 33% drop chance
+                    // Add a drop chance for a powerup to block
+                    const isPowerUp = Math.random() < 0.20 ; // 20% drop chance
       
                     return new Block({ 
                         width: this.blockWidth,

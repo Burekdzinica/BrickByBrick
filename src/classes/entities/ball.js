@@ -18,6 +18,9 @@ export class Ball extends RigidBody {
         this.startAngle = startAngle;
         this.endAngle = endAngle;
         this.bounceMultiplier = bounceMultiplier;
+
+        this.bounceSound = new Audio("../../res/audio/bounce.wav");
+        this.baseVolume = 1;
     }
 
     update(deltaTime, canvas, paddle) {
@@ -46,7 +49,10 @@ export class Ball extends RigidBody {
         this.position.y += this.velocity.y;
     }
 
-    bounce(posX, width) {
+    bounceOfPaddle(posX, width) {
+        this.bounceSound.volume = this.baseVolume * 0.5;
+        this.bounceSound.play();
+
         let center = posX + width / 2; 
         let distanceFromCenter = this.position.x - center;
 
@@ -56,13 +62,16 @@ export class Ball extends RigidBody {
         this.velocity.y *= -1;
     }
 
-    bounceWithoutY(posX, width) {
-        let center = posX + width / 2; 
-        let distanceFromCenter = this.position.x - center;
+    bounceOfBlock(width) {
+        this.bounceSound.volume = this.baseVolume * 1;
+        this.bounceSound.play();
 
-        let normalizedDistance = distanceFromCenter / (width / 2);
-
-        this.velocity.x = normalizedDistance * this.bounceMultiplier;
+        if (this.position.x + this.radius > width || this.position.x - this.radius < width)
+            this.velocity.x *= 1;
+        else
+            this.velocity.x *= -1;
+        
+        this.velocity.y *= -1;
     }
 
     // Checks canvas collision
@@ -71,24 +80,26 @@ export class Ball extends RigidBody {
 
         // Bounces down
         if (this.position.y - ballSize <= 0) {
+            this.bounceSound.play();
             this.position.y = ballSize;
             this.velocity.y *= -1;
         }
 
         // Bounces left
         if (this.position.x + ballSize >= canvas.width) {
+            this.bounceSound.play();
             this.position.x = canvas.width - ballSize;
             this.velocity.x *= -1;
         } 
 
         // Bounces right
         else if (this.position.x - ballSize <= 0) {
+            this.bounceSound.play();
             this.position.x = ballSize;
             this.velocity.x *= -1;
         }
     }
 
-    // TODO: bounce right/left if on edge ce se mi da
     // Checks paddle collision
     checkPaddleBox(paddle) {
         let ballSize = this.radius + this.lineWidth / 2;
@@ -101,7 +112,7 @@ export class Ball extends RigidBody {
 
                 // Is going down and isn't bellow paddle 
                 if (this.velocity.y > 0 && this.position.y + ballSize <= paddle.position.y + paddle.height + edgeOffset) {
-                    this.bounce(paddle.position.x, paddle.width);
+                    this.bounceOfPaddle(paddle.position.x, paddle.width);
                 }
             }
         }
