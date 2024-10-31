@@ -6,11 +6,13 @@ export class LevelEditor {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
 
-        const { width, height, hp, strokeColor, lineWidth } = blockConfig;
+        const { width, height, strokeColor, lineWidth } = blockConfig;
+
+        // Default hp
+        this.hp = 1;
 
         this.width = width;
         this.height = height;
-        this.hp = 5;
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
 
@@ -49,6 +51,7 @@ export class LevelEditor {
         this.blocks.forEach(block => 
             block.render(this.ctx));
 
+        // Change button text depending on current block
         this.buttons.forEach(button => {
             if (button.text.startsWith("Block"))
                 button.text = "Block: " + this.hp;
@@ -59,7 +62,7 @@ export class LevelEditor {
 
     // Renders grid system
     renderGrid() {
-        this.ctx.strokeStyle = "#616060";
+        this.ctx.strokeStyle = "#616060"; // gray
         this.ctx.lineWidth = this.lineWidth;
 
         this.ctx.setLineDash([5, 10]);
@@ -130,7 +133,7 @@ export class LevelEditor {
         
         const levelData = JSON.stringify([{ block: blockData }], null, 2);
 
-        this.dowloadJson(levelData, "levelData.json");
+        this.dowloadJson(levelData, "level.json");
     }
     
     dowloadJson(data, filename) {
@@ -146,11 +149,33 @@ export class LevelEditor {
         URL.revokeObjectURL(url);
     }
 
+    // Cycle through blocks on click
     changeBlock() {
-        this.hp = this.hp % 6 + 1;
-        
-        if (this.hp === 6)
-            this.hp = "Unbreakable";
+        switch (this.hp) {
+            case 1:
+                this.hp = 2;
+                break;
+            
+            case 2:
+                this.hp = 3;
+                break;
+
+            case 3:
+                this.hp = 4;
+                break;
+
+            case 4:
+                this.hp = 5;
+                break;
+
+            case 5:
+                this.hp = "Unbreakable";
+                break;
+
+            case "Unbreakable":
+                this.hp = 1;
+                break;
+        }
     }
     
     // Handles button clicks

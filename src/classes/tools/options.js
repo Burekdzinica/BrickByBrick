@@ -27,9 +27,17 @@ export class Options {
 
         this.difficulties = difficulties;
 
-        const storedMusicVolume = parseInt(localStorage.getItem("musicVolume"), 10);
-        const storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
-        const storedDifficulty = localStorage.getItem("difficulty");
+        let storedMusicVolume = parseInt(localStorage.getItem("musicVolume"), 10);
+        if (storedMusicVolume === null || isNaN(storedMusicVolume))
+            storedMusicVolume = 1;
+
+        let storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
+        if (storedSoundVolume === null || isNaN(storedSoundVolume))
+            storedSoundVolume = 1;
+
+        let storedDifficulty = localStorage.getItem("difficulty");
+        if (storedDifficulty === null)
+            storedDifficulty = difficulties.NORMAL;
 
         this.musicVolume = storedMusicVolume;
         this.soundVolume = storedSoundVolume;

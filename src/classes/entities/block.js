@@ -11,8 +11,6 @@ export class Block extends StaticBody {
         this.strokeColor = strokeColor;
         this.lineWidth = lineWidth;
         this.powerUp = powerUp;
-
-        console.log(this.lineWidth);
     }
 
     render(ctx) {
@@ -25,7 +23,7 @@ export class Block extends StaticBody {
                 case 1:
                     ctx.fillStyle = "#ecf39e";
                     break;
-                    
+  
                 case 2:
                     ctx.fillStyle = "#90a955";
                     break;

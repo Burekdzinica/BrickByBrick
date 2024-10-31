@@ -14,10 +14,6 @@ export class Paddle {
         this.lineWidth = lineWidth;
     }
     
-    update() {
-        
-    }
-    
     render(ctx) {
         ctx.fillStyle = this.color;
         ctx.strokeStyle = this.strokeColor;
@@ -28,13 +24,13 @@ export class Paddle {
         ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
     }
 
-    move(mouseX, canvasWidth) {
+    move(mouseX) {
         let paddleSize = this.width / 2; // take half of paddleWidth
 
-        // Checks bounding box so it doesn't go offscreen
+        // Checks bounding box so it doesn't go offscreen //
         // Right
-        if ((mouseX + paddleSize) + this.lineWidth >= canvasWidth)
-            this.position.x = canvasWidth - this.width - this.lineWidth;
+        if ((mouseX + paddleSize) + this.lineWidth >= this.canvas.width)
+            this.position.x = this.canvas.width - this.width - this.lineWidth;
 
         // Left 
         else if ((mouseX - paddleSize - this.lineWidth) <= 0)
@@ -52,12 +48,11 @@ export class Paddle {
         // Gets mouse x position
         let mouseX = event.clientX - rect.left;
 
-        this.move(mouseX, this.canvas.width);
+        this.move(mouseX);
     }
 
     resetPosition() {
-        // this.position.x = this.startPosition.x;
-        this.position.x = (this.canvas.width - this.width) / 2;
+        this.position.x = (this.canvas.width - this.width) / 2; // center paddle on canvas
         this.position.y = this.startPosition.y;
     }
 

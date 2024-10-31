@@ -27,7 +27,7 @@ export class PowerUp extends RigidBody {
         switch (this.power) {
             case "Ball":
                 this.image.src = "../../res/assets/powerUp_ball.png";
-                break;
+                break;            
 
             case "Size":
                 this.image.src = "../../res/assets/powerUp_size.png";

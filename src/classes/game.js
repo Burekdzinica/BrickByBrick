@@ -36,7 +36,6 @@ export class Game {
         this.powerUps = [];
         this.balls = [];
 
-        
         this.paddle = new Paddle(config.paddle, this.canvas);
         this.levelEditor = new LevelEditor(this.canvas, config.block, config.button);
         this.options = new Options(this.canvas, this.config, this);
@@ -134,12 +133,9 @@ export class Game {
 
                 if (!this.waitingForAction && !this.hasWon && !this.hasLost) {
                     // For frames
-                    if (!this.lastTime)
-                        this.lastTime = timestamp;
-
-                    const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
                     this.lastTime = timestamp;
-    
+                    const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
+       
                     this.update(deltaTime);
 
                     this.render();
@@ -175,11 +171,13 @@ export class Game {
             if (powerUp.checkPaddleBox(this.paddle)) {
                 this.powerUpPickupSound.play();
 
+                // Extra ball powerup
                 if (powerUp.power == "Ball") {
                     const position = { x: this.paddle.position.x + this.paddle.width / 2, y: this.paddle.position.y - this.paddle.height}; // Center of paddle spawn
                     this.addBall(position);
                 }
 
+                // Paddle size powerup
                 else 
                     this.increasePaddleSize();
 
@@ -206,7 +204,7 @@ export class Game {
             
                 if (block.containsBall(ball)) {
                     if (block.hp === "Unbreakable") {
-                        ball.bounceOfBlock(block.width);
+                        ball.bounceOfBlock();
 
                         hitUnbreakable = true;
                         lastHitBlock = true;
@@ -215,14 +213,13 @@ export class Game {
                     }
     
                     if (block.hp !== "Unbreakable") {
-                        ball.bounceOfBlock(block.width);
+                        ball.bounceOfBlock();
 
                         block.hp--;
                         this.score += 100;
                         
                         // Destroy block if hp zero
                         if (block.hp === 0) {
-                            
                             this.brickDestroyedSound.play();
     
                             // If block has powerup drop it
@@ -232,13 +229,12 @@ export class Game {
                                 let power;
                                 if (Math.random() < 0.5) 
                                     power = "Ball";
-                                
                                 else
                                     power = "Size";
                         
                                 this.powerUps.push(new PowerUp(this.config.powerUp, block.position, block.width, power));
                             }
-                            
+                            // Delete that block
                             this.blocks = this.blocks.filter(b => b !== block);
                         }
                         
@@ -364,6 +360,7 @@ export class Game {
             endAngle: endAngle,
             bounceMultiplier: bounceMultiplier
         }));
+
         this.changeSoundVolume();
     }
 
@@ -373,7 +370,9 @@ export class Game {
 
     // Difficulty based on paddle size
     changeDifficulty() {
-        const storedDifficulty = localStorage.getItem("difficulty");
+        let storedDifficulty = localStorage.getItem("difficulty");
+        if (storedDifficulty === null)
+            storedDifficulty = this.options.difficulties.NORMAL;
 
         switch (storedDifficulty) {
             case this.options.difficulties.EASY:
@@ -395,14 +394,17 @@ export class Game {
     }
 
     changeMusicVolume() {
-        const storedMusicVolume = parseInt(localStorage.getItem("musicVolume"), 10);
+        let storedMusicVolume = parseInt(localStorage.getItem("musicVolume"), 10);
+        if (storedMusicVolume === null || isNaN(storedMusicVolume))
+            storedMusicVolume = 1;
 
         this.music.volume = storedMusicVolume
     }
 
     changeSoundVolume() {
-        const storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
-
+        let storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
+        if (storedSoundVolume === null || isNaN(storedSoundVolume))
+            storedSoundVolume = 1;
 
         this.balls.forEach(ball => {
             ball.baseVolume = storedSoundVolume;
@@ -461,6 +463,7 @@ export class Game {
 
                         this.options.addButtonListeners();
 
+                        this.levelEditor.removeButtonListeners();
                         this.removeButtonListeners();
 
                         break;
@@ -477,6 +480,7 @@ export class Game {
 
         else if (this.hasWon) {
             let level = "level" + this.level;
+            this.loadLevel(level);
 
             // Reset to 1 ball
             this.balls = [];
@@ -485,9 +489,7 @@ export class Game {
 
             this.changeSoundVolume();
           
-            this.loadLevel(level);
-
-            this.changeDifficulty();
+            this.changeDifficulty(); // change paddle width depending on difficulty
             this.paddle.resetPosition();
 
             this.waitingForAction = true;
@@ -503,8 +505,10 @@ export class Game {
             this.powerUps = [];
 
             this.balls.push(new Ball(this.config.ball));
-
+            
             this.changeSoundVolume();
+
+            this.changeDifficulty(); // change paddle width depending on difficulty
             
             this.paddle.resetPosition();
 
@@ -524,10 +528,11 @@ export class Game {
             this.currentState = gameState.MAIN_MENU;
 
             this.addButtonListeners();
+            
+            // Remove listeners not wanted in menu
             this.canvas.removeEventListener('click', this.handleCanvasClickBound);
             this.canvas.removeEventListener("click", this.addBlockBound);
-
-            this.levelEditor.addButtonListeners();
+            this.levelEditor.removeButtonListeners();
             this.options.removeButtonListeners();
 
             this.clear();
@@ -585,7 +590,7 @@ export class Game {
     loadHighscore() {
         const storedHighscore = localStorage.getItem("highscore");
   
-        if (storedHighscore == null) 
+        if (storedHighscore === null) 
             return 0;
         else
             return parseInt(storedHighscore, 10);

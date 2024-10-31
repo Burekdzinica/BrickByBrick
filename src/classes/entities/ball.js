@@ -56,21 +56,17 @@ export class Ball extends RigidBody {
         let center = posX + width / 2; 
         let distanceFromCenter = this.position.x - center;
 
-        let normalizedDistance = distanceFromCenter / (width / 2);
+        let normalizedDistance = distanceFromCenter / (width / 2); // ball hit relative to center of paddle
 
+        // x velocity based on distanced from paddle center
         this.velocity.x = normalizedDistance * this.bounceMultiplier;
         this.velocity.y *= -1;
     }
 
-    bounceOfBlock(width) {
+    bounceOfBlock() {
         this.bounceSound.volume = this.baseVolume * 1;
         this.bounceSound.play();
 
-        if (this.position.x + this.radius > width || this.position.x - this.radius < width)
-            this.velocity.x *= 1;
-        else
-            this.velocity.x *= -1;
-        
         this.velocity.y *= -1;
     }
 
@@ -78,23 +74,26 @@ export class Ball extends RigidBody {
     checkBoundingBox(canvas) {
         const ballSize = this.radius + this.lineWidth / 2;
 
-        // Bounces down
+        // Bounces from top
         if (this.position.y - ballSize <= 0) {
             this.bounceSound.play();
+
             this.position.y = ballSize;
             this.velocity.y *= -1;
         }
 
-        // Bounces left
+        // Bounces from right
         if (this.position.x + ballSize >= canvas.width) {
             this.bounceSound.play();
+
             this.position.x = canvas.width - ballSize;
             this.velocity.x *= -1;
         } 
 
-        // Bounces right
+        // Bounces from left
         else if (this.position.x - ballSize <= 0) {
             this.bounceSound.play();
+
             this.position.x = ballSize;
             this.velocity.x *= -1;
         }
@@ -104,7 +103,7 @@ export class Ball extends RigidBody {
     checkPaddleBox(paddle) {
         let ballSize = this.radius + this.lineWidth / 2;
 
-        // Is on paddle
+        // Is on paddle vertical
         if (this.position.y + ballSize >= paddle.position.y) {
             // Checks horizontal paddle bounds
             if (this.position.x >= paddle.position.x && this.position.x <= (paddle.position.x + paddle.width)) {
@@ -123,3 +122,9 @@ export class Ball extends RigidBody {
         this.position.y = this.startPosition.y;
     }
 }
+
+
+////////////////// Bounce logic: //////////////////
+
+// only change x direction if it hits canvas right or left edge, or depending on paddle hit
+// every bounce changes y direction

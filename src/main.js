@@ -1,24 +1,24 @@
 import { Game } from './classes/game.js';
 
 let config = null;
+let game = null;
 
 async function loadConfig() {
     if (!config) {
         const response = await fetch('./config.json');
         config = await response.json(); 
     }
-
-    const game = new Game(config);
-
-    requestAnimationFrame(gameLoop.bind(null, game));
+    
+    game = new Game(config);
 }
 
 function gameLoop(game, timestamp) {
     game.play(timestamp);
+
     requestAnimationFrame(gameLoop.bind(null, game)); 
 }
 
-loadConfig();
-
-
-// TODO: fix this mess
+// Load config then game play
+loadConfig().then(() => {
+    requestAnimationFrame(gameLoop.bind(null, game));
+});

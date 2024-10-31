@@ -1,6 +1,6 @@
 export class Button {
     // Without canvas it doesnt work , why idk?? fFIX
-    constructor(config, position = { x: 0, y: 0 }, text, canvas) {
+    constructor(config, position, text, canvas) {
         this.position = position;
         this.canvas = canvas;
         this.text = text;
@@ -22,9 +22,6 @@ export class Button {
         this.textBaseline = textBaseline;
     }
 
-    update() {
-
-    }
     render(ctx) {
         
         ctx.fillStyle = this.color;
@@ -64,8 +61,5 @@ export class Button {
             this.color = this.hoverColor;
         else 
             this.color = this.defaultColor;
-    }   
-    
-
-    
+    }       
 }
