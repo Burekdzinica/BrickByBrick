@@ -56,8 +56,9 @@ export class Game {
         // Text
         this.text = new Text(config.text);
 
-        // Paddle listener
+        // Paddle listeners
         this.canvas.addEventListener("mousemove", this.handlePaddle.bind(this));
+        this.canvas.addEventListener("keydown", this.handlePaddle.bind(this));
 
         // Reference to the bound listeners
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
@@ -104,6 +105,7 @@ export class Game {
         this.changeMusicVolume();
         this.changeSoundVolume();
         this.changeDifficulty();
+        this.changeControls();
 
         this.lastTime = 0;
     }
@@ -151,6 +153,7 @@ export class Game {
             case gameState.OPTIONS:
                 this.changeMusicVolume();
                 this.changeSoundVolume();
+                this.changeControls();
 
                 this.options.render();
                 
@@ -280,7 +283,6 @@ export class Game {
 
             this.hasWon = true;
         }
-
     }
 
     render() {
@@ -401,6 +403,14 @@ export class Game {
         this.music.volume = storedMusicVolume
     }
 
+    changeControls() {
+        let storedControls= localStorage.getItem("controls");
+        if (storedControls === null) {
+            storedControls = "mouse";
+        }
+        this.controls = storedControls;
+    }
+
     changeSoundVolume() {
         let storedSoundVolume = parseInt(localStorage.getItem("soundVolume"), 10);
         if (storedSoundVolume === null || isNaN(storedSoundVolume))
@@ -518,12 +528,18 @@ export class Game {
     }
 
     handlePaddle(event) {
-        if (!this.waitingForAction)
-            this.paddle.handleMouse(event);
+        if (!this.waitingForAction) {
+            this.controls == "keyboard" ? this.paddle.handleKey(event) : this.paddle.handleMouse(event);
+        }
     }
 
     // Esc to menu
     handleKeyPress(event) {
+        this.handlePaddle(event);
+
+        if (this.waitingForAction)
+            this.waitingForAction = false;
+
         if (event.key == "Escape" && this.currentState != gameState.MAIN_MENU) {
             this.currentState = gameState.MAIN_MENU;
 

@@ -15,11 +15,13 @@ export class Options {
         const difficultyButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 - 60 };
         const musicButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 20 };
         const soundButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 100 };
+        const controlsButtonPosition = { x: this.canvas.width / 2 - 100, y: this.canvas.height / 2 + 180 };
 
         this.buttons = [
             new Button(config.button, difficultyButtonPosition, "Difficulty", this.canvas),
             new Button(config.button, musicButtonPosition, "Music", this.canvas),
-            new Button(config.button, soundButtonPosition, "Sound", this.canvas)
+            new Button(config.button, soundButtonPosition, "Sound", this.canvas),
+            new Button(config.button, controlsButtonPosition, "Controls", this.canvas)
         ];
 
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
@@ -39,9 +41,15 @@ export class Options {
         if (storedDifficulty === null)
             storedDifficulty = difficulties.NORMAL;
 
+        let storedControls= localStorage.getItem("controls");
+        if (storedControls === null) {
+            storedControls = "mouse";
+        }
+
         this.musicVolume = storedMusicVolume;
         this.soundVolume = storedSoundVolume;
         this.difficulty = storedDifficulty;
+        this.controls = storedControls;
     }
 
     render() {
@@ -74,6 +82,13 @@ export class Options {
                 button.hoverColor = "#998303";
             }
 
+            if (button.text.startsWith("Controls")) {
+                if (this.controls === "mouse")
+                    button.text = "Controls: mouse";
+                else
+                    button.text = "Controls: keyboard";
+            }
+
             button.render(this.ctx);
         })
     }
@@ -101,6 +116,18 @@ export class Options {
                 break;
         }
         this.saveDifficulty();
+    }
+
+    changeControls() {
+        switch (this.controls) {
+            case "mouse":
+                this.controls = "keyboard";
+                break;
+            case "keyboard":
+                this.controls = "mouse";
+                break;
+        }
+        this.saveControls();
     }
 
     muteMusic() {
@@ -138,6 +165,9 @@ export class Options {
             
                 else if (button.text.startsWith("Sound")) 
                     this.muteSound();
+
+                else if (button.text.startsWith("Controls"))
+                    this.changeControls();
             }
         });
     }
@@ -168,5 +198,9 @@ export class Options {
 
     saveDifficulty() {
         localStorage.setItem("difficulty", this.difficulty);
+    }
+
+    saveControls() {
+        localStorage.setItem("controls", this.controls);
     }
 }

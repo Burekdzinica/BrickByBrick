@@ -38,7 +38,7 @@ export class Paddle {
 
         // Else
         else 
-            this.position.x = mouseX - paddleSize;   
+            this.position.x = mouseX - paddleSize;
     }
 
     handleMouse(event) {
@@ -49,6 +49,22 @@ export class Paddle {
         let mouseX = event.clientX - rect.left;
 
         this.move(mouseX);
+    }
+
+    handleKey(event) {
+        // Left arrow or A key
+        if (event.keyCode == 37 || event.keyCode == 65)
+            this.position.x -= 15;
+        
+        // Right arrow or D key
+        else if (event.keyCode == 39 || event.keyCode == 68)
+            this.position.x += 15;
+    
+        if (this.position.x - this.lineWidth < 0)
+            this.position.x = 0;
+        
+        else if (this.position.x + this.width + this.lineWidth > this.canvas.width)
+            this.position.x = this.canvas.width - this.width;
     }
 
     resetPosition() {
