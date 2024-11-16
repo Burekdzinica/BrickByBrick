@@ -58,7 +58,7 @@ export class Game {
 
         // Paddle listeners
         this.canvas.addEventListener("mousemove", this.handlePaddle.bind(this));
-        this.canvas.addEventListener("keydown", this.handlePaddle.bind(this));
+        document.addEventListener("keydown", this.handlePaddle.bind(this));
 
         // Reference to the bound listeners
         this.handleButtonHoverBound = this.handleButtonHover.bind(this);
@@ -106,11 +106,9 @@ export class Game {
         this.changeSoundVolume();
         this.changeDifficulty();
         this.changeControls();
-
-        this.lastTime = 0;
     }
 
-    play(timestamp) {
+    play(deltaTime) {
         switch (this.currentState) {
             case gameState.MAIN_MENU: 
                 this.clear();
@@ -134,12 +132,9 @@ export class Game {
                     this.renderLoseScreen();
 
                 if (!this.waitingForAction && !this.hasWon && !this.hasLost) {
-                    // For frames
-                    this.lastTime = timestamp;
-                    const deltaTime = (timestamp - this.lastTime) / 1000; // Convert to seconds
-       
                     this.update(deltaTime);
 
+                    
                     this.render();
                 }   
 
@@ -158,7 +153,7 @@ export class Game {
                 this.options.render();
                 
                 break;
-            }
+        }
     }
 
     update(deltaTime) {
@@ -535,8 +530,6 @@ export class Game {
 
     // Esc to menu
     handleKeyPress(event) {
-        this.handlePaddle(event);
-
         if (this.waitingForAction)
             this.waitingForAction = false;
 

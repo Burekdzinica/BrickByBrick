@@ -5,20 +5,48 @@ let game = null;
 
 async function loadConfig() {
     if (!config) {
-        const response = await fetch('./config.json');
-        config = await response.json(); 
+        try {
+            const response = await fetch('./config.json');
+            if (!response.ok) throw new Error(`Failed to load config: ${response.status}`);
+            config = await response.json();
+        } 
+        catch (error) {
+            console.error('Error loading config:', error);
+            return null;
+        }
     }
-    
     game = new Game(config);
 }
 
-function gameLoop(game, timestamp) {
-    game.play(timestamp);
+loadConfig().then(() => {
+    if (game) {
+        requestAnimationFrame(gameLoop);
+    } 
+    else {
+        console.error('Game initialization failed.');
+    }
+});
 
-    requestAnimationFrame(gameLoop.bind(null, game)); 
+const targetFPS = 60;
+const frameDuration = 1000 / targetFPS;
+let lastFrameTime = 0;
+
+function gameLoop(timestamp) {
+    // Calculate the time since the last frame
+    const timeSinceLastFrame = timestamp - lastFrameTime;
+
+    if (timeSinceLastFrame >= frameDuration) {
+        lastFrameTime = timestamp;
+
+        const deltaTime = timeSinceLastFrame / 1000;
+        game.play(deltaTime);
+    }
+
+    requestAnimationFrame(gameLoop);
 }
 
-// Load config then game play
-loadConfig().then(() => {
-    requestAnimationFrame(gameLoop.bind(null, game));
-});
+// Start the loop
+requestAnimationFrame(gameLoop);
+
+
+

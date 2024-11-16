@@ -10,8 +10,8 @@ export class RigidBody {
     }
 
     updateVelocity(deltaTime) {
-        this.velocity.x += this.accelaration.x;
-        this.velocity.y += this.accelaration.y;
+        this.velocity.x += this.accelaration.x * deltaTime;
+        this.velocity.y += this.accelaration.y * deltaTime;
     }
 }
 
